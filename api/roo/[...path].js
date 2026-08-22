@@ -1,5 +1,6 @@
-// Proxy para IBM Bob / Roo Code API — Vercel Serverless Function
-// CommonJS export para compatibilidade máxima com Vercel Node runtime
+// Catch-all proxy for IBM Bob / Roo Code API — Vercel Serverless Function
+// Handles: /api/roo/chat/completions  (and any sub-path)
+// CommonJS export for maximum Vercel Node runtime compatibility.
 
 module.exports = async function handler(req, res) {
   // CORS preflight
@@ -8,24 +9,25 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   if (req.method === 'OPTIONS') { res.status(200).end(); return }
 
-  const ibmPath = (req.url || '').replace(/^\/api\/roo/, '/apis/v3')
-  const ibmUrl  = `https://servicesessentials.ibm.com${ibmPath}`
+  // /api/roo/chat/completions  →  /apis/v3/chat/completions
+  const subPath = (req.query.path || []).join('/')
+  const ibmUrl  = `https://servicesessentials.ibm.com/apis/v3/${subPath}`
 
   try {
     const bodyStr = req.body !== undefined ? JSON.stringify(req.body) : undefined
 
     const upstream = await fetch(ibmUrl, {
-      method:  'POST',
+      method:  req.method,
       headers: {
         'Content-Type':  'application/json',
         'Authorization': req.headers['authorization'] || '',
       },
-      body: bodyStr,
+      body: req.method !== 'GET' && req.method !== 'HEAD' ? bodyStr : undefined,
     })
 
     const text = await upstream.text()
     res.status(upstream.status)
-    res.setHeader('Content-Type', 'application/json')
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json')
     res.send(text)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Proxy error'
