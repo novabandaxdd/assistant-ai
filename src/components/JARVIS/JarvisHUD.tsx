@@ -99,12 +99,13 @@ const MODEL_LABELS: Record<string, string> = {
 }
 
 const PROVIDER_DEFAULT_LABELS: Record<string, string> = {
-  roo:            'CLAUDE SONNET 4.6',
-  claude:         'CLAUDE OPUS 4.5',
-  openai:         'GPT-4O',
-  cline:          'GPT-4O',
+  gemini:          'GEMINI FLASH',
+  roo:             'CLAUDE SONNET 4.6',
+  claude:          'CLAUDE OPUS 4.5',
+  openai:          'GPT-4O',
+  cline:           'GPT-4O',
   'openai-compat': 'COMPAT',
-  local:          'LOCAL NLP',
+  local:           'LOCAL NLP',
 }
 
 function getModelLabel(): string {

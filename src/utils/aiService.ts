@@ -24,6 +24,7 @@ export interface ChatMessage {
 export type AIProvider =
   | 'claude'           // Anthropic Claude — native API
   | 'openai'           // OpenAI — native API
+  | 'gemini'           // Google Gemini — native API (free tier available)
   | 'roo'              // Roo Code / IBM Bob — OpenAI-compatible proxy
   | 'cline'            // Cline — OpenAI-compatible proxy
   | 'openai-compat'    // Generic OpenAI-compatible (bring your own URL)
@@ -57,12 +58,13 @@ const STORAGE_KEY = 'jarvis_ai_config'
 
 // ── Default models
 const DEFAULT_MODELS: Record<AIProvider, string> = {
-  claude:        'claude-opus-4-5',
-  openai:        'gpt-4o',
-  roo:           'global/anthropic.claude-sonnet-4-6',
-  cline:         'gpt-4o',
+  claude:          'claude-opus-4-5',
+  openai:          'gpt-4o',
+  gemini:          'gemini-2.0-flash',
+  roo:             'global/anthropic.claude-sonnet-4-6',
+  cline:           'gpt-4o',
   'openai-compat': 'gpt-4o',
-  local:         'local-nlp',
+  local:           'local-nlp',
 }
 
 // ── Known base URLs
@@ -144,7 +146,7 @@ Ações disponíveis:
   Ex: "analise meu grafo" → GRAPH_ACTION:ANALYZE_GRAPH
 
 Se o usuário pedir para trocar de agente, inclua: AGENT_SWITCH:<provider>:<model>
-Agentes disponíveis: roo/global/anthropic.claude-sonnet-4-6, claude/claude-opus-4-5, openai/gpt-4o, roo/global/gpt-5.1-chat, roo/global/gemini-3-flash-preview, local/local-nlp
+Agentes disponíveis: gemini/gemini-2.0-flash, gemini/gemini-2.0-flash-lite, openai/gpt-4o, openai/gpt-4o-mini, claude/claude-opus-4-5, roo/global/anthropic.claude-sonnet-4-6, roo/global/gpt-5.1-chat, local/local-nlp
 
 IMPORTANTE: Sempre responda naturalmente em texto, e ADICIONE o bloco GRAPH_ACTION ou AGENT_SWITCH no final da resposta quando necessário. O bloco será processado automaticamente e removido antes de ser exibido ao usuário.`
 
@@ -251,6 +253,8 @@ export async function askAI(
       return callClaude(userMessage, systemPrompt, cfg, history)
     case 'openai':
       return callOpenAI(userMessage, systemPrompt, cfg, history)
+    case 'gemini':
+      return callGemini(userMessage, systemPrompt, cfg, history)
     case 'roo':
     case 'cline':
     case 'openai-compat':
@@ -393,6 +397,55 @@ async function callOpenAICompat(
     text:       stripXmlTags(data.choices[0]?.message?.content ?? ''),
     provider:   cfg.provider,
     tokensUsed: data.usage?.total_tokens,
+  }
+}
+
+// ── Google Gemini (native)
+async function callGemini(
+  userMessage:  string,
+  systemPrompt: string,
+  cfg:          AIConfig,
+  history?:     ChatMessage[],
+): Promise<AIResponse> {
+  const model = cfg.model ?? DEFAULT_MODELS.gemini
+  const url   = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cfg.apiKey}`
+
+  // Build Gemini-format contents array from history
+  const contents: Array<{ role: string; parts: Array<{ text: string }> }> = []
+  if (history) {
+    for (const h of history) {
+      contents.push({ role: h.role === 'jarvis' ? 'model' : 'user', parts: [{ text: h.text }] })
+    }
+  }
+  contents.push({ role: 'user', parts: [{ text: userMessage }] })
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents,
+      generationConfig: {
+        maxOutputTokens: cfg.maxTokens ?? 2048,
+        temperature: 0.7,
+      },
+    }),
+  })
+
+  await assertOk(res, 'Google Gemini')
+
+  interface GeminiResponse {
+    candidates: Array<{
+      content: { parts: Array<{ text: string }> }
+    }>
+    usageMetadata?: { totalTokenCount: number }
+  }
+
+  const data = await res.json() as GeminiResponse
+  return {
+    text:       stripXmlTags(data.candidates[0]?.content?.parts[0]?.text ?? ''),
+    provider:   'gemini',
+    tokensUsed: data.usageMetadata?.totalTokenCount,
   }
 }
 

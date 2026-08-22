@@ -24,14 +24,40 @@ interface ProviderMeta {
 }
 
 const PROVIDERS: Record<AIProvider, ProviderMeta> = {
+  gemini: {
+    label:          'Google Gemini',
+    description:    'API gratuita · Gemini 2.0 Flash · 1M context',
+    badge:          '✦ Gratuito',
+    badgeColor:     '#059669',
+    needsUrl:       false,
+    keyPlaceholder: 'AIzaSy...',
+    models:         ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+    docsUrl:        'https://aistudio.google.com/apikey',
+  },
+  openai: {
+    label:          'OpenAI',
+    description:    'Native OpenAI API · GPT-4o / GPT-4o mini',
+    needsUrl:       false,
+    keyPlaceholder: 'sk-...',
+    models:         ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
+    docsUrl:        'https://platform.openai.com/api-keys',
+  },
+  claude: {
+    label:          'Claude (Anthropic)',
+    description:    'Native Anthropic API · Melhor qualidade',
+    badge:          'Top Quality',
+    badgeColor:     '#d97706',
+    needsUrl:       false,
+    keyPlaceholder: 'sk-ant-api03-...',
+    models:         ['claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-4-5'],
+    docsUrl:        'https://console.anthropic.com/keys',
+  },
   roo: {
     label:          'Roo Code / IBM Bob',
     description:    'OpenAI-compatible · Claude Sonnet 4.6 via IBM proxy · 200k context',
-    badge:          '★ Active',
-    badgeColor:     '#7c3aed',
     needsUrl:       true,
     keyPlaceholder: '7:xxx:96ca8495-...',
-    defaultUrl:     KNOWN_BASE_URLS.roo,   // /api/roo in dev, full URL in prod
+    defaultUrl:     KNOWN_BASE_URLS.roo,
     models:         [
       'global/anthropic.claude-sonnet-4-6',
       'global/anthropic.claude-sonnet-4-5-2025...',
@@ -44,24 +70,6 @@ const PROVIDERS: Record<AIProvider, ProviderMeta> = {
       'global/ibm/granite-4-h-small',
     ],
     docsUrl:        'https://roocode.com',
-  },
-  claude: {
-    label:          'Claude (Anthropic)',
-    description:    'Native Anthropic API · Best quality',
-    badge:          'Recommended',
-    badgeColor:     '#d97706',
-    needsUrl:       false,
-    keyPlaceholder: 'sk-ant-api03-...',
-    models:         ['claude-opus-4-5', 'claude-sonnet-4-5', 'claude-haiku-4-5'],
-    docsUrl:        'https://console.anthropic.com/keys',
-  },
-  openai: {
-    label:          'OpenAI',
-    description:    'Native OpenAI API · GPT-4o',
-    needsUrl:       false,
-    keyPlaceholder: 'sk-...',
-    models:         ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
-    docsUrl:        'https://platform.openai.com/api-keys',
   },
   cline: {
     label:          'Cline',
@@ -87,7 +95,7 @@ const PROVIDERS: Record<AIProvider, ProviderMeta> = {
   },
 }
 
-const PROVIDER_ORDER: AIProvider[] = ['roo', 'claude', 'openai', 'cline', 'openai-compat', 'local']
+const PROVIDER_ORDER: AIProvider[] = ['gemini', 'openai', 'claude', 'roo', 'cline', 'openai-compat', 'local']
 
 // ── Component ──────────────────────────────────────────────────────────────
 const TTS_VOICES = [
@@ -100,7 +108,7 @@ const TTS_VOICES = [
 ]
 
 export default function SettingsPanel({ open, onClose }: Props) {
-  const [provider, setProvider] = useState<AIProvider>('roo')
+  const [provider, setProvider] = useState<AIProvider>('gemini')
   const [apiKey,   setApiKey]   = useState('')
   const [baseUrl,  setBaseUrl]  = useState('')
   const [model,    setModel]    = useState('')
@@ -128,9 +136,9 @@ export default function SettingsPanel({ open, onClose }: Props) {
       setTtsApiKey(cfg.ttsApiKey ?? (cfg.provider === 'openai' ? cfg.apiKey : ''))
       setTtsVoice(cfg.ttsVoice ?? 'onyx')
     } else {
-      // Default to Roo Code pre-filled
-      setProvider('roo')
-      setBaseUrl(KNOWN_BASE_URLS.roo)
+      // Default to Gemini (free tier)
+      setProvider('gemini')
+      setBaseUrl('')
     }
     setStatus('idle')
     setStatusMsg('')
@@ -206,8 +214,8 @@ export default function SettingsPanel({ open, onClose }: Props) {
     if (!confirm('Apagar todas as configurações salvas, incluindo chaves de API?')) return
     clearAIConfig()
     setApiKey(''); setBaseUrl(''); setModel(''); setMaxTok('')
-    setProvider('roo')
-    setBaseUrl(KNOWN_BASE_URLS.roo)
+    setProvider('gemini')
+    setBaseUrl('')
     setStatus('cleared')
     setStatusMsg('')
     window.dispatchEvent(new Event('jarvis:config-changed'))
