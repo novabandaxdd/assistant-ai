@@ -207,7 +207,10 @@ export function getActiveProvider(): AIProvider {
 
 export function isAIConfigured(): boolean {
   const cfg = loadAIConfig()
-  return !!(cfg?.apiKey && cfg.provider !== 'local')
+  if (!cfg || cfg.provider === 'local') return false
+  // loadAIConfig() intentionally strips the plaintext key for security.
+  // Check the vault instead to confirm a key has been saved for this provider.
+  return vaultHasKey(cfg.provider)
 }
 
 // ── Knowledge context builder
