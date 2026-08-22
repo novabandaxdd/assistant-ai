@@ -70,10 +70,10 @@ const DEFAULT_MODELS: Record<AIProvider, string> = {
 // ── Known base URLs
 // In dev we use the Vite proxy path (/api/roo) to avoid CORS.
 // In prod the user must set up their own reverse-proxy and update the URL.
-const IS_DEV = typeof window !== 'undefined' && window.location.hostname === 'localhost'
-
 export const KNOWN_BASE_URLS: Record<string, string> = {
-  roo:   IS_DEV ? '/api/roo' : 'https://servicesessentials.ibm.com/apis/v3',
+  // Always use the relative proxy path — works in both local dev (Vite proxy)
+  // and production (Vercel serverless function at /api/roo)
+  roo:   '/api/roo',
   cline: 'https://api.openai.com/v1',   // default; user overrides
 }
 

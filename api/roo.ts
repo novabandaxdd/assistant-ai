@@ -2,28 +2,33 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 // Proxy para IBM Bob / Roo Code API
 // Contorna o bloqueio de CORS do browser → IBM
+// Roda no servidor da Vercel (Node.js) — sem restrições de CORS
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const { method, headers, body } = req
+  // Allow preflight
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  if (req.method === 'OPTIONS') { res.status(200).end(); return }
 
-  // Strip the /api/roo prefix, forward the rest to IBM
-  const ibmPath = req.url?.replace(/^\/api\/roo/, '/apis/v3') ?? '/apis/v3'
+  const ibmPath = (req.url ?? '').replace(/^\/api\/roo/, '/apis/v3')
   const ibmUrl  = `https://servicesessentials.ibm.com${ibmPath}`
 
   try {
     const upstream = await fetch(ibmUrl, {
-      method: method ?? 'POST',
+      method:  req.method ?? 'POST',
       headers: {
         'Content-Type':  'application/json',
-        'Authorization': headers['authorization'] ?? '',
-        'x-roo-api-key': (headers['x-roo-api-key'] as string) ?? '',
+        'Authorization': (req.headers['authorization'] as string) ?? '',
       },
-      body: method !== 'GET' && method !== 'HEAD' ? JSON.stringify(body) : undefined,
+      body: req.method !== 'GET' && req.method !== 'HEAD'
+        ? JSON.stringify(req.body)
+        : undefined,
     })
 
-    const data = await upstream.text()
+    const text = await upstream.text()
     res.status(upstream.status)
     res.setHeader('Content-Type', upstream.headers.get('content-type') ?? 'application/json')
-    res.send(data)
+    res.send(text)
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Proxy error'
     res.status(502).json({ error: msg })
