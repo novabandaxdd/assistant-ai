@@ -15,7 +15,7 @@
 import { useEffect, useRef } from 'react'
 import { useBrainStore } from '../store/brainStore'
 import { processCommand } from '../utils/jarvisNLP'
-import { askAI, buildKnowledgeContext, loadAIConfig, saveAIConfig, isAIConfigured } from '../utils/aiService'
+import { askAI, buildKnowledgeContext, loadAIConfig, loadAIConfigWithKey, saveAIConfig, isAIConfigured } from '../utils/aiService'
 import type { AIConfig } from '../utils/aiService'
 import { playActivationSound, speakText, unlockAudio } from '../utils/jarvisVoice'
 import type { KanbanCard, KanbanColumnId, NodeCategory } from '../types'
@@ -55,7 +55,7 @@ async function processMessage(
   raw:     string,
   history: Array<{ role: 'user' | 'jarvis'; text: string }>,
 ): Promise<{ response: string; action?: () => Promise<void> | void }> {
-  const aiConfig = loadAIConfig()
+  const aiConfig = await loadAIConfigWithKey()
   if (isAIConfigured() && aiConfig) {
     try {
       const result = await askAI(raw, buildContext(), aiConfig, history)
@@ -310,20 +310,12 @@ export function useJarvisEngine() {
     }
   }, [])
 
-  // ── Startup greeting ──────────────────────────────────────────────────────
+  // ── Startup greeting (text only — no audio on load) ───────────────────────
   useEffect(() => {
     if (greetedRef.current) return
     greetedRef.current = true
-
-    const timer = setTimeout(async () => {
-      setVoiceStateRef.current('speaking')
-      // Try to play the MP3 (may be silently blocked if no gesture yet)
-      await playActivationSound(0.85).catch(() => {})
-      // Speak greeting via TTS
-      speak.current('Sistema JARVIS operacional, Senhor. Segunda memória ativa.')
-    }, 2400)
-
-    return () => clearTimeout(timer)
+    // Just add the greeting message to chat — no sound, no TTS on startup
+    addMessageRef.current({ role: 'jarvis', text: 'Sistema JARVIS operacional, Senhor. Segunda memória ativa.' })
   }, [])
 
   // ── Main input handler ────────────────────────────────────────────────────

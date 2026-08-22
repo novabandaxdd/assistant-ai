@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import {
-  loadAIConfig, saveAIConfig, clearAIConfig, askAI, KNOWN_BASE_URLS,
+  loadAIConfig, loadAIConfigWithKey, saveAIConfig, clearAIConfig, askAI,
+  KNOWN_BASE_URLS, getProviderKey, vaultHasKey,
   type AIProvider, type AIConfig, type TTSProvider,
 } from '../../utils/aiService'
 import styles from './SettingsPanel.module.css'
@@ -122,34 +123,38 @@ export default function SettingsPanel({ open, onClose }: Props) {
   const [ttsVoice,    setTtsVoice]    = useState('onyx')
   const [showTtsKey,  setShowTtsKey]  = useState(false)
 
-  // Load on open
+  // Load on open — async to decrypt keys from vault
   useEffect(() => {
     if (!open) return
-    const cfg = loadAIConfig()
-    if (cfg) {
-      setProvider(cfg.provider)
-      setApiKey(cfg.apiKey ?? '')
-      setBaseUrl(cfg.baseUrl ?? PROVIDERS[cfg.provider].defaultUrl ?? '')
-      setModel(cfg.model ?? '')
-      setMaxTok(cfg.maxTokens ? String(cfg.maxTokens) : '')
-      setTtsProvider(cfg.ttsProvider ?? 'browser')
-      setTtsApiKey(cfg.ttsApiKey ?? (cfg.provider === 'openai' ? cfg.apiKey : ''))
-      setTtsVoice(cfg.ttsVoice ?? 'onyx')
-    } else {
-      // Default to Gemini (free tier)
-      setProvider('gemini')
-      setBaseUrl('')
-    }
-    setStatus('idle')
-    setStatusMsg('')
-    setShowKey(false)
+    void (async () => {
+      const cfg = await loadAIConfigWithKey()
+      if (cfg) {
+        setProvider(cfg.provider)
+        setApiKey(cfg.apiKey ?? '')
+        setBaseUrl(cfg.baseUrl ?? PROVIDERS[cfg.provider]?.defaultUrl ?? '')
+        setModel(cfg.model ?? '')
+        setMaxTok(cfg.maxTokens ? String(cfg.maxTokens) : '')
+        setTtsProvider(cfg.ttsProvider ?? 'browser')
+        setTtsApiKey(cfg.ttsApiKey ?? '')
+        setTtsVoice(cfg.ttsVoice ?? 'onyx')
+      } else {
+        setProvider('gemini')
+        setBaseUrl('')
+      }
+      setStatus('idle')
+      setStatusMsg('')
+      setShowKey(false)
+    })()
   }, [open])
 
-  // When switching provider, update default URL
+  // When switching provider, restore that provider's decrypted key + default URL
   const handleProviderChange = (p: AIProvider) => {
     setProvider(p)
     setModel('')
     setBaseUrl(PROVIDERS[p].defaultUrl ?? '')
+    // Show a masked placeholder if key exists in vault, else empty
+    setApiKey(vaultHasKey(p) ? '••••••••••••••••' : '')
+    void getProviderKey(p).then(k => setApiKey(k))
     setStatus('idle')
   }
 
@@ -163,12 +168,12 @@ export default function SettingsPanel({ open, onClose }: Props) {
     }
     if (!apiKey.trim()) {
       setStatus('error')
-      setStatusMsg('API key is required.')
+      setStatusMsg('API key é obrigatória.')
       return
     }
     if (PROVIDERS[provider].needsUrl && !baseUrl.trim()) {
       setStatus('error')
-      setStatusMsg('Base URL is required for this provider.')
+      setStatusMsg('Base URL é obrigatória para este provider.')
       return
     }
     const cfg: AIConfig = {
@@ -181,10 +186,11 @@ export default function SettingsPanel({ open, onClose }: Props) {
       ttsApiKey:   ttsProvider === 'openai-tts' && ttsApiKey.trim() ? ttsApiKey.trim() : undefined,
       ttsVoice:    ttsProvider === 'openai-tts' ? ttsVoice : undefined,
     }
-    saveAIConfig(cfg)
-    setStatus('saved')
-    setStatusMsg('')
-    window.dispatchEvent(new Event('jarvis:config-changed'))
+    void saveAIConfig(cfg).then(() => {
+      setStatus('saved')
+      setStatusMsg('')
+      window.dispatchEvent(new Event('jarvis:config-changed'))
+    })
   }
 
   const handleTest = async () => {
@@ -197,9 +203,9 @@ export default function SettingsPanel({ open, onClose }: Props) {
         apiKey:    apiKey.trim(),
         baseUrl:   PROVIDERS[provider].needsUrl ? baseUrl.trim() : undefined,
         model:     model || undefined,
-        // claude-sonnet-4-6 has extended thinking with min budget_tokens=1024,
-        // so max_tokens must be > 1024. Use 2048 for the test call.
-        maxTokens: provider === 'roo' ? 2048 : 256,
+        // IBM Claude Sonnet 4.6 uses extended thinking with budget_tokens=1024,
+        // max_tokens must be strictly greater than budget_tokens → use 5000
+        maxTokens: provider === 'roo' ? 5000 : 512,
       }
       const res = await askAI('Reply with exactly: "JARVIS online, Sir." Nothing else.', '', testCfg)
       setStatus('ok')

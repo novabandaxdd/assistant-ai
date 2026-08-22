@@ -10,7 +10,7 @@
  *   - Fall back through a ranked list of deep/male voices
  *   - Apply lowest feasible pitch + slow rate for JARVIS cadence
  */
-import { loadAIConfig } from './aiService'
+import { loadAIConfigWithKey } from './aiService'
 import { resetXttsProbe } from './xttsService'
 
 // ── Voice preference list — ordered best → acceptable ────────────────────────
@@ -283,9 +283,10 @@ export interface SpeakOptions {
 export function speakText(text: string, opts: SpeakOptions = {}): () => void {
   const cancelRef = { cancelled: false, source: undefined as AudioBufferSourceNode | undefined }
 
-  const cfg       = loadAIConfig()
+  // Load config with decrypted keys async, then speak
+  void loadAIConfigWithKey().then(cfg => {
   const useOpenAI = cfg?.ttsProvider === 'openai-tts'
-  const openAIKey = cfg?.ttsApiKey || (cfg?.provider === 'openai' ? cfg.apiKey : '')
+  const openAIKey = cfg?.ttsApiKey || (cfg?.provider === 'openai' ? cfg?.apiKey : '')
   const voice     = cfg?.ttsVoice || 'onyx'
 
   if (useOpenAI && openAIKey) {
@@ -298,9 +299,9 @@ export function speakText(text: string, opts: SpeakOptions = {}): () => void {
         if (!cancelRef.cancelled) speakBrowser(text, opts, cancelRef)
       })
   } else {
-    // ── Browser Web Speech API — tuned for JARVIS voice ──────────────────────
     speakBrowser(text, opts, cancelRef)
   }
+  }) // end loadAIConfigWithKey
 
   return () => {
     cancelRef.cancelled = true

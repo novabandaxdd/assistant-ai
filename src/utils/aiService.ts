@@ -3,16 +3,14 @@
  * Abstraction layer for AI providers. Supports:
  *   • Claude (Anthropic)           — native Anthropic API
  *   • OpenAI (GPT-4o, etc.)        — native OpenAI API
- *   • Roo Code / IBM Bob           — OpenAI-compatible, IBM proxy, XML tool protocol
+ *   • Google Gemini                — native Gemini API (free tier)
+ *   • Roo Code / IBM Bob           — OpenAI-compatible, IBM proxy
  *   • Cline                        — OpenAI-compatible, custom base URL
  *   • OpenAI-Compatible (generic)  — any custom endpoint
  *   • Local fallback NLP           — always available, no key needed
  *
- * CORS note: browser cannot call the IBM endpoint directly.
- * In dev  → requests go to /api/roo (Vite proxy → IBM, no CORS)
- * In prod → deploy behind your own reverse-proxy or use a serverless function
- *
- * API keys are stored ONLY in sessionStorage (cleared on tab close).
+ * Security: API keys are encrypted at rest via AES-256-GCM (secureVault.ts).
+ * Plaintext keys are NEVER written to localStorage.
  */
 
 // ── Chat history entry (subset of JarvisMessage)
@@ -150,22 +148,58 @@ Agentes disponíveis: gemini/gemini-2.5-flash, gemini/gemini-2.5-pro, gemini/gem
 
 IMPORTANTE: Sempre responda naturalmente em texto, e ADICIONE o bloco GRAPH_ACTION ou AGENT_SWITCH no final da resposta quando necessário. O bloco será processado automaticamente e removido antes de ser exibido ao usuário.`
 
-// ── Persistence — localStorage so config survives tab close & server restarts
+import {
+  vaultSet, vaultGet, vaultSetTts, vaultGetTts, vaultHasKey, vaultClear,
+} from './secureVault'
+
+// ── Async per-provider key access (encrypted vault) ─────────────────────────
+
+/** Returns the decrypted key for a provider, or '' if not stored */
+export async function getProviderKey(provider: string): Promise<string> {
+  return vaultGet(provider)
+}
+
+// ── Persistence — localStorage stores config metadata (NO keys) ─────────────
+// API keys are stored encrypted in secureVault.ts — never in plaintext here.
+
 export function loadAIConfig(): AIConfig | null {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as AIConfig
+    const cfg = JSON.parse(raw) as AIConfig
+    // Strip any plaintext key that may have been stored in older versions
+    cfg.apiKey = ''
+    cfg.ttsApiKey = ''
+    return cfg
   } catch { return null }
 }
 
-export function saveAIConfig(cfg: AIConfig): void {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg))
+/** Save config metadata (provider, model, url, etc.) — keys go to vault */
+export async function saveAIConfig(cfg: AIConfig): Promise<void> {
+  if (cfg.apiKey)    await vaultSet(cfg.provider, cfg.apiKey)
+  if (cfg.ttsApiKey) await vaultSetTts(cfg.ttsApiKey)
+
+  // Persist config without the plaintext keys
+  const safe = { ...cfg, apiKey: '', ttsApiKey: '' }
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(safe))
+}
+
+/** Load config and decrypt the active provider's key into memory */
+export async function loadAIConfigWithKey(): Promise<AIConfig | null> {
+  const cfg = loadAIConfig()
+  if (!cfg) return null
+  cfg.apiKey    = await vaultGet(cfg.provider)
+  cfg.ttsApiKey = await vaultGetTts()
+  return cfg
 }
 
 export function clearAIConfig(): void {
   localStorage.removeItem(STORAGE_KEY)
+  vaultClear()
 }
+
+// Re-export vault helpers needed by UI
+export { vaultHasKey }
 
 export function getActiveProvider(): AIProvider {
   return loadAIConfig()?.provider ?? 'local'
