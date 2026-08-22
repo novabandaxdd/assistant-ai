@@ -1,6 +1,8 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
+// Proxy para IBM Bob / Roo Code API
+// Contorna o bloqueio de CORS do browser → IBM
+// Roda no servidor da Vercel (Node.js) — sem restrições de CORS
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   // CORS preflight
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
@@ -11,15 +13,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const ibmUrl  = `https://servicesessentials.ibm.com${ibmPath}`
 
   try {
-    // Re-serialize body exactly as received — Vercel parses JSON body automatically,
-    // so we must stringify it back to send as raw JSON to IBM
     const bodyStr = req.body !== undefined ? JSON.stringify(req.body) : undefined
 
     const upstream = await fetch(ibmUrl, {
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',
-        'Authorization': (req.headers['authorization'] as string) ?? '',
+        'Authorization': req.headers['authorization'] ?? '',
       },
       body: bodyStr,
     })
