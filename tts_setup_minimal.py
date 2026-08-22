@@ -1,0 +1,7 @@
+import setuptools
+
+setuptools.setup(
+    packages=setuptools.find_packages(
+        exclude=["images*", "recipes*", "notebooks*", "dockerfiles*", "tests*"]
+    ),
+)

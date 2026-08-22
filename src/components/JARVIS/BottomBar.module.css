@@ -1,0 +1,104 @@
+.bar {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 80;
+  pointer-events: all;
+}
+
+.inputWrap {
+  background: rgba(10, 13, 22, 0.92);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 30px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: rgba(255,255,255,0.7);
+  font-size: 12.5px;
+  padding: 10px 22px;
+  width: 380px;
+  font-family: inherit;
+}
+.input::placeholder { color: rgba(255,255,255,0.28); }
+.input:focus { color: #fff; }
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(10, 13, 22, 0.92);
+  border: 1px solid rgba(255,255,255,0.13);
+  border-radius: 30px;
+  padding: 4px 8px;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.action svg { width: 15px; height: 15px; }
+.action:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.actionActive {
+  background: rgba(239,68,68,0.15) !important;
+  color: #f87171 !important;
+  animation: pulse 0.8s ease-in-out infinite;
+}
+
+.actionSpeaking {
+  background: rgba(74,222,128,0.12) !important;
+  color: #4ade80 !important;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+.voiceIndicator {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(10,13,22,0.9);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 11px;
+  color: rgba(255,255,255,0.6);
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+}
+
+.voiceDot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+}
+.voiceDot.listening { background: #ef4444; animation: pulse 0.8s infinite; }
+.voiceDot.thinking  { background: #f59e0b; animation: pulse 1s infinite; }
+.voiceDot.speaking  { background: #4ade80; animation: pulse 1.2s infinite; }

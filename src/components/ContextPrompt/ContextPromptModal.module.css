@@ -1,0 +1,136 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 520;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(2, 6, 12, 0.82);
+  backdrop-filter: blur(12px);
+}
+
+.modal {
+  width: min(1100px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: #0d0f14;
+  border: 1px solid rgba(0, 245, 255, 0.16);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px 28px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.eyebrow {
+  margin-bottom: 8px;
+  color: rgba(0, 245, 255, 0.7);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #f7fbff;
+}
+
+.subtitle {
+  margin-top: 8px;
+  max-width: 700px;
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.closeButton {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  color: #fff;
+  border-color: rgba(0, 245, 255, 0.22);
+  background: rgba(0, 245, 255, 0.08);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 28px 0;
+}
+
+.copyButton {
+  padding: 11px 16px;
+  border: 1px solid rgba(0, 245, 255, 0.24);
+  border-radius: 12px;
+  background: rgba(0, 245, 255, 0.1);
+  color: #98fbff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: 0.18s ease;
+}
+
+.copyButton:hover {
+  transform: translateY(-1px);
+  background: rgba(0, 245, 255, 0.14);
+}
+
+.content {
+  padding: 18px 28px 28px;
+  overflow: auto;
+}
+
+.promptBlock {
+  margin: 0;
+  min-height: 420px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(244, 251, 255, 0.9);
+  font-family: 'Consolas', 'SFMono-Regular', monospace;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 720px) {
+  .overlay {
+    padding: 12px;
+  }
+
+  .header,
+  .actions,
+  .content {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .title {
+    font-size: 20px;
+  }
+
+  .promptBlock {
+    min-height: 320px;
+    padding: 16px;
+  }
+}

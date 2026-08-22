@@ -1,0 +1,666 @@
+/* ── Sidebar container ───────────────────────────────────────────────────── */
+.sidebar {
+  position: fixed;
+  left: 0; top: 0; bottom: 0;
+  width: 240px;
+  background: rgba(6, 8, 16, 0.98);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 50;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+}
+
+/* ── Workspace header ────────────────────────────────────────────────────── */
+.workspaceHeader {
+  padding: 16px 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.wsInfo {}
+
+.wsTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.8px;
+}
+
+.wsMeta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  margin-top: 2px;
+}
+
+.wsActions {
+  display: flex;
+  gap: 6px;
+}
+
+.wsBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.wsBtn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Search ──────────────────────────────────────────────────────────────── */
+.searchWrap {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.015);
+  position: relative;
+}
+
+.searchIcon {
+  color: rgba(255, 255, 255, 0.28);
+  flex-shrink: 0;
+}
+
+.search {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+  min-width: 0;
+}
+.search::placeholder { color: rgba(255, 255, 255, 0.25); }
+
+.searchClear {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.28);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 2px 4px;
+  line-height: 1;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+.searchClear:hover { color: rgba(255, 255, 255, 0.7); }
+
+/* ── Collapsible section ─────────────────────────────────────────────────── */
+.section {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.sectionHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.sectionHeader:hover { background: rgba(255, 255, 255, 0.025); }
+
+.sectionTitle {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.28);
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+
+.chevron {
+  color: rgba(255, 255, 255, 0.22);
+  transition: transform 0.18s ease;
+}
+.chevronOpen { transform: rotate(180deg); }
+
+.sectionBody {
+  padding: 4px 14px 12px;
+}
+
+/* ── Inspector ───────────────────────────────────────────────────────────── */
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.emptyHint {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.28);
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* Node identity card */
+.nodeCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.nodeCardDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.nodeCardBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.nodeCardLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.nodeCardMeta {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  margin-top: 2px;
+}
+
+/* Content block */
+.nodeContent {
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.6;
+  max-height: 80px;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+/* Tags */
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag {
+  background: rgba(124, 92, 216, 0.12);
+  border: 1px solid rgba(124, 92, 216, 0.25);
+  border-radius: 5px;
+  color: rgba(196, 181, 253, 0.75);
+  font-size: 10px;
+  padding: 2px 7px;
+}
+
+/* Common dot */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Neighbors list */
+.neighborsList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.listLabel {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  color: rgba(255, 255, 255, 0.25);
+  text-transform: uppercase;
+  padding: 0 2px;
+  margin-bottom: 3px;
+}
+
+.neighborBtn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 5px 8px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 11.5px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+  width: 100%;
+}
+.neighborBtn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+.neighborLabel {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moreLabel {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.28);
+  padding: 2px 8px;
+}
+
+/* Node action buttons */
+.nodeActions {
+  display: flex;
+  gap: 5px;
+}
+
+.actionBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  padding: 6px 6px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #fff;
+}
+
+.actionBtnDanger {
+  flex: 0 0 34px;
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.15);
+  color: rgba(239, 68, 68, 0.6);
+}
+.actionBtnDanger:hover {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
+}
+
+/* Connect form */
+.connectForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Link list */
+.linkList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.025);
+  border-radius: 5px;
+  padding: 4px 7px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.linkLabel {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unlinkBtn {
+  background: none;
+  border: none;
+  color: rgba(239, 68, 68, 0.4);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  transition: color 0.12s;
+  flex-shrink: 0;
+}
+.unlinkBtn:hover { color: #f87171; }
+
+/* Edit form */
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Shared field style ───────────────────────────────────────────────────── */
+.field {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, background 0.15s;
+}
+.field:focus {
+  border-color: rgba(0, 245, 255, 0.35);
+  background: rgba(0, 245, 255, 0.03);
+}
+.field::placeholder { color: rgba(255, 255, 255, 0.25); }
+.field option { background: #0a0d1a; }
+.fieldTextarea { resize: none; line-height: 1.5; }
+
+/* Row actions (save/cancel) */
+.rowActions {
+  display: flex;
+  gap: 6px;
+}
+
+.btnPrimary {
+  flex: 1;
+  background: rgba(0, 245, 255, 0.08);
+  border: 1px solid rgba(0, 245, 255, 0.22);
+  border-radius: 7px;
+  color: #00f5ff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.btnPrimary:hover:not(:disabled) { background: rgba(0, 245, 255, 0.16); }
+.btnPrimary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.btnGhost {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 7px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+  padding: 6px;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+.btnGhost:hover { background: rgba(255, 255, 255, 0.08); color: rgba(255, 255, 255, 0.75); }
+
+/* ── Top Hubs ─────────────────────────────────────────────────────────────── */
+.hubList {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.hubBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 7px;
+  border-radius: 6px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s, color 0.12s;
+  width: 100%;
+}
+.hubBtn:hover { background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.9); }
+.hubActive {
+  background: rgba(255, 255, 255, 0.06) !important;
+  color: #fff;
+}
+
+.hubLabel {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hubCount {
+  font-size: 10.5px;
+  color: rgba(255, 255, 255, 0.3);
+  min-width: 20px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Forces sliders ───────────────────────────────────────────────────────── */
+.sliders {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sliderRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sliderLabel {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.42);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.sliderTrack {
+  flex: 1;
+}
+
+.slider {
+  width: 100%;
+  accent-color: #00f5ff;
+  cursor: pointer;
+  height: 3px;
+  background: transparent;
+}
+
+.sliderVal {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  min-width: 26px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Toggle switches ──────────────────────────────────────────────────────── */
+.toggleList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggleLabel {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 32px;
+  height: 17px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: background 0.2s, border-color 0.2s;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.toggleOn {
+  background: rgba(0, 245, 255, 0.25);
+  border-color: rgba(0, 245, 255, 0.4);
+}
+
+.toggleThumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  transition: transform 0.18s ease, background 0.18s;
+}
+.toggleOn .toggleThumb {
+  transform: translateX(15px);
+  background: #00f5ff;
+}
+
+/* ── Add node section ─────────────────────────────────────────────────────── */
+.addSection {
+  padding: 10px 14px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.addNodeBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  background: rgba(74, 222, 128, 0.07);
+  border: 1px dashed rgba(74, 222, 128, 0.25);
+  border-radius: 8px;
+  color: rgba(74, 222, 128, 0.7);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 9px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.addNodeBtn:hover {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.4);
+  border-style: solid;
+}
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.addFormHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.addFormTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.5px;
+}
+
+.addFormClose {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.28);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color 0.12s;
+  line-height: 1;
+}
+.addFormClose:hover { color: rgba(255, 255, 255, 0.7); }
+
+.addConfirmBtn {
+  background: rgba(74, 222, 128, 0.1);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 7px;
+  color: #4ade80;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px;
+  cursor: pointer;
+  transition: background 0.14s;
+}
+.addConfirmBtn:hover:not(:disabled) { background: rgba(74, 222, 128, 0.18); }
+.addConfirmBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Controls hint ────────────────────────────────────────────────────────── */
+.controlsHint {
+  padding: 10px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: auto;
+}
+
+.hintRow {
+  font-size: 9.5px;
+  color: rgba(255, 255, 255, 0.18);
+  line-height: 1.7;
+  letter-spacing: 0.2px;
+}
+
+kbd {
+  font-family: inherit;
+  font-size: 9px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  padding: 0px 4px;
+  color: rgba(255, 255, 255, 0.3);
+}

@@ -1,0 +1,239 @@
+/* ── HUD Container ───────────────────────────────────────────────────────────
+   Position is controlled entirely via inline style (top/left/width).
+   The component persists layout to localStorage.                               */
+.hud {
+  position: fixed;
+  /* top/left/width set via inline style */
+  user-select: none;
+  z-index: 200;           /* above sidebars */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  touch-action: none;     /* required for pointer capture on mobile */
+}
+
+/* ── Ring wrapper (SVG + center label) ───────────────────────────────────── */
+.ringWrap {
+  position: relative;
+  /* width/height set via inline style */
+  flex-shrink: 0;
+}
+
+/* ── SVG ring canvas ──────────────────────────────────────────────────────── */
+.rings {
+  /* width/height set via inline style */
+  cursor: pointer;
+  transition: filter 0.4s ease;
+  display: block;
+}
+
+/* ── Resize handle ────────────────────────────────────────────────────────── */
+.resizeHandle {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 18px;
+  height: 18px;
+  cursor: se-resize;
+  touch-action: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  /* Visual indicator: two diagonal lines */
+  background:
+    linear-gradient(
+      135deg,
+      transparent 30%,
+      rgba(0, 245, 255, 0.6) 30%, rgba(0, 245, 255, 0.6) 38%,
+      transparent 38%,
+      transparent 55%,
+      rgba(0, 245, 255, 0.6) 55%, rgba(0, 245, 255, 0.6) 63%,
+      transparent 63%
+    );
+  border-radius: 0 0 4px 0;
+}
+.hud:hover .resizeHandle { opacity: 1; }
+
+/* ── Rotating rings ───────────────────────────────────────────────────────── */
+.ring1 {
+  transform-origin: 120px 120px;
+  animation: spin1 18s linear infinite;
+}
+.ring2 {
+  transform-origin: 120px 120px;
+  animation: spin2 11s linear infinite;
+}
+.ring3 {
+  transform-origin: 120px 120px;
+  animation: spin1 28s linear infinite;
+}
+.ringDot {
+  transform-origin: 120px 120px;
+  animation: spin2 40s linear infinite;
+}
+
+/* Speed up rings when active */
+.listening .ring1  { animation-duration: 5s; }
+.listening .ring2  { animation-duration: 3s; }
+.thinking  .ring1  { animation-duration: 3s; }
+.thinking  .ring2  { animation-duration: 2s; }
+.speaking  .ring1  { animation-duration: 2.5s; }
+.speaking  .ring2  { animation-duration: 1.5s; }
+
+/* ── Orange arc ───────────────────────────────────────────────────────────── */
+.arcStatic {
+  transform-origin: 120px 120px;
+}
+.arcSpin {
+  transform-origin: 120px 120px;
+  animation: spin1 2s linear infinite;
+}
+
+/* ── Pulse ring (appears when active) ────────────────────────────────────── */
+.pulse {
+  transform-origin: 120px 120px;
+  animation: pulse 1.8s ease-in-out infinite;
+}
+
+/* ── Sphere pulse (speaking state only) ─────────────────────────────────── */
+.spherePulse {
+  animation: sphereGlow 0.6s ease-in-out infinite alternate;
+}
+
+/* ── Speaking wave dots ────────────────────────────────────────────────────  */
+.waveDot {
+  animation: wavePop 0.55s ease-in-out infinite alternate;
+}
+
+/* ── Center label (overlaid on SVG via ringWrap) ────────────────────────── */
+.centerLabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.logo {
+  font-family: 'Orbitron', 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  transition: color 0.4s, text-shadow 0.4s;
+}
+
+/* ── Below HUD (state + badge) ───────────────────────────────────────────── */
+.below {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+/* State row */
+.stateRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.stateDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background 0.3s, box-shadow 0.3s;
+}
+
+.stateLabel {
+  font-family: 'Orbitron', 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  transition: color 0.3s;
+}
+
+/* Sub-label line */
+.subLabel {
+  font-size: 11px;
+  color: rgba(180, 210, 230, 0.5);
+  letter-spacing: 0.5px;
+  margin-top: -2px;
+}
+
+/* ── Agent badge ─────────────────────────────────────────────────────────── */
+.agentBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 10, 20, 0.7);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 20px;
+  padding: 5px 14px 5px 10px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  margin-top: 2px;
+}
+.agentBadge:hover {
+  background: rgba(0, 229, 255, 0.08);
+  border-color: rgba(0, 229, 255, 0.55);
+}
+
+.agentDiamond {
+  font-size: 9px;
+  color: #f59e0b;
+  line-height: 1;
+}
+
+.agentName {
+  font-family: 'Orbitron', 'Courier New', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(200, 240, 255, 0.85);
+  letter-spacing: 1.5px;
+}
+
+/* ── State-specific overrides ────────────────────────────────────────────── */
+/* Thinking: orange tint on badge */
+.thinking .agentBadge {
+  border-color: rgba(245, 158, 11, 0.35);
+}
+.thinking .agentName {
+  color: rgba(255, 220, 150, 0.85);
+}
+
+/* Speaking: bright cyan badge */
+.speaking .agentBadge {
+  border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 50, 60, 0.5);
+}
+
+/* ── Unsupported warning ─────────────────────────────────────────────────── */
+.unsupported {
+  font-size: 9px;
+  color: rgba(255, 100, 100, 0.7);
+  white-space: nowrap;
+  margin-top: 4px;
+}
+
+/* ── Keyframes ───────────────────────────────────────────────────────────── */
+@keyframes spin1 {
+  to { transform: rotate(360deg); }
+}
+@keyframes spin2 {
+  to { transform: rotate(-360deg); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.15; r: 118; }
+  50%       { opacity: 0.7;  r: 122; }
+}
+@keyframes sphereGlow {
+  from { opacity: 0.7; }
+  to   { opacity: 1.0; }
+}
+@keyframes wavePop {
+  from { r: 1.5; opacity: 0.4; }
+  to   { r: 3.5; opacity: 1.0; }
+}
