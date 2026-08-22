@@ -60,7 +60,7 @@ const STORAGE_KEY = 'jarvis_ai_config'
 const DEFAULT_MODELS: Record<AIProvider, string> = {
   claude:          'claude-opus-4-5',
   openai:          'gpt-4o',
-  gemini:          'gemini-2.0-flash',
+  gemini:          'gemini-2.5-flash',
   roo:             'global/anthropic.claude-sonnet-4-6',
   cline:           'gpt-4o',
   'openai-compat': 'gpt-4o',
@@ -146,7 +146,7 @@ Ações disponíveis:
   Ex: "analise meu grafo" → GRAPH_ACTION:ANALYZE_GRAPH
 
 Se o usuário pedir para trocar de agente, inclua: AGENT_SWITCH:<provider>:<model>
-Agentes disponíveis: gemini/gemini-2.0-flash, gemini/gemini-2.0-flash-lite, openai/gpt-4o, openai/gpt-4o-mini, claude/claude-opus-4-5, roo/global/anthropic.claude-sonnet-4-6, roo/global/gpt-5.1-chat, local/local-nlp
+Agentes disponíveis: gemini/gemini-2.5-flash, gemini/gemini-2.5-pro, openai/gpt-4o, openai/gpt-4o-mini, claude/claude-opus-4-5, roo/global/anthropic.claude-sonnet-4-6, local/local-nlp
 
 IMPORTANTE: Sempre responda naturalmente em texto, e ADICIONE o bloco GRAPH_ACTION ou AGENT_SWITCH no final da resposta quando necessário. O bloco será processado automaticamente e removido antes de ser exibido ao usuário.`
 
