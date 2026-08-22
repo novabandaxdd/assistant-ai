@@ -14,7 +14,8 @@ import type {
   BrainExportData,
   BrainView,
 } from '../types'
-import { SAMPLE_NODES, SAMPLE_LINKS, CATEGORY_COLORS } from '../data/sampleBrain'
+import { CATEGORY_COLORS } from '../data/sampleBrain'
+import { useProjectStore } from './projectStore'
 import {
   saveNode,
   saveLink,
@@ -66,7 +67,7 @@ interface BrainStore {
   removeLink: (id: string) => Promise<void>
 
   // ── Actions: selection
-  selectNode: (id: string | null) => void
+  selectNode: (id: string | null, forceGraphView?: boolean) => void
   highlightConnections: (nodeId: string) => void
   tracePath: (fromId: string, toId: string) => void
   clearHighlight: () => void
@@ -96,9 +97,18 @@ interface BrainStore {
   // ── Actions: export/import
   exportBrain: () => BrainExportData
   importBrain: (data: BrainExportData, mode: 'merge' | 'replace') => Promise<void>
+  clearProjectData: (projectId: string) => Promise<void>
+
+  // ── Undo / Redo
+  undoStack: Array<{ description: string; undo: () => Promise<void> }>
+  redoStack: Array<{ description: string; redo: () => Promise<void> }>
+  undo: () => Promise<void>
+  redo: () => Promise<void>
+  canUndo: () => boolean
+  canRedo: () => boolean
 
   // ── Actions: kanban
-  createActivityNode: (label: string, projectId?: string | null) => Promise<BrainNode>
+  createActivityNode: (label: string, projectId?: string | null, content?: string, priority?: KanbanCard['priority']) => Promise<BrainNode>
   moveActivityToColumn: (nodeId: string, columnId: KanbanColumnId) => Promise<void>
   getKanbanCards: () => KanbanCard[]
 
@@ -139,7 +149,12 @@ function inferColumnId(node: BrainNode): KanbanColumnId {
 }
 
 function inferPriority(node: BrainNode): KanbanCard['priority'] {
-  const source = `${node.label} ${node.content ?? ''} ${(node.tags ?? []).join(' ')}`.toLowerCase()
+  // Explicit priority tag wins first
+  const tags = node.tags ?? []
+  if (tags.includes('priority:high'))   return 'high'
+  if (tags.includes('priority:low'))    return 'low'
+  if (tags.includes('priority:medium')) return 'medium'
+  const source = `${node.label} ${node.content ?? ''} ${tags.join(' ')}`.toLowerCase()
   if (source.includes('alta') || source.includes('high') || source.includes('urgente') || source.includes('p1')) return 'high'
   if (source.includes('baixa') || source.includes('low') || source.includes('p3')) return 'low'
   return 'medium'
@@ -173,6 +188,9 @@ function buildProjectSubgraphNodeIds(projectId: string, nodes: BrainNode[], link
   return new Set([...visible].filter(id => nodeIds.has(id)))
 }
 
+// Internal flag to suppress undo/redo tracking during undo/redo execution
+let _suppressHistory = false
+
 export const useBrainStore = create<BrainStore>((set, get) => ({
   nodes: [],
   links: [],
@@ -192,6 +210,8 @@ export const useBrainStore = create<BrainStore>((set, get) => ({
   chatOpen: false,
   sessions: [],
   activeSessionId: null,
+  undoStack: [],
+  redoStack: [],
 
   init: async () => {
     if (get().initialized) return
@@ -201,71 +221,136 @@ export const useBrainStore = create<BrainStore>((set, get) => ({
         'Project', 'Meeting', 'Onboarding', 'Tech', 'Activity', 'Person', 'Decision', 'Note', 'Resource',
         'Module', 'Feature', 'Endpoint',
       ])
+      // Known mock/sample node IDs that were seeded in older versions
+      const MOCK_NODE_IDS = new Set([
+        'proj-alpha','proj-beta','proj-gamma','proj-cuida',
+        'ob-proc','ob-arch','ob-conv','ob-env','ob-flow',
+        'meet-kick','meet-sprint1','meet-retro1','meet-arch',
+        'tech-react','tech-node','tech-pg','tech-docker','tech-gh','tech-jest',
+        'dec-pg','dec-arch','dec-ts',
+        'person-joao','person-marina','person-carlos','person-ana',
+        'feat-auth','feat-crud','feat-notif','feat-reports','feat-mobile',
+        'mod-authsvc','mod-coreapi','mod-worker','mod-notif',
+        'ep-login','ep-users','ep-orders',
+        'note-risk1','note-debt1','note-qa',
+        'res-wiki','res-figma','res-jira',
+        'act-login','act-crud','act-tests',
+      ])
+
       const isStale = brain.nodes.length > 0 && brain.nodes.some(node => !validCategories.has(node.category))
-      if (brain.nodes.length > 0 && !isStale) {
-        set({
-          nodes: brain.nodes,
-          links: brain.links,
-          kanbanColumns: brain.kanbanColumns.length > 0 ? brain.kanbanColumns : DEFAULT_KANBAN_COLUMNS,
-          initialized: true,
-          sessions,
-        })
+      const isMockOnly = brain.nodes.length > 0 && brain.nodes.every(node => MOCK_NODE_IDS.has(node.id))
+
+      if (isStale || isMockOnly) {
+        // Wipe stale/legacy/mock data silently — user starts fresh
+        await clearDB()
+        await replaceKanbanColumns(DEFAULT_KANBAN_COLUMNS)
+        set({ nodes: [], links: [], kanbanColumns: DEFAULT_KANBAN_COLUMNS, initialized: true, sessions })
         return
       }
 
-      await clearDB()
-      for (const node of SAMPLE_NODES) await saveNode(node)
-      for (const link of SAMPLE_LINKS) await saveLink(link)
-      await replaceKanbanColumns(DEFAULT_KANBAN_COLUMNS)
+      // Migration: assign projectId = 'default' to any node that lacks one
+      const nodes = brain.nodes.map(node =>
+        node.projectId ? node : { ...node, projectId: 'default' }
+      )
       set({
-        nodes: SAMPLE_NODES,
-        links: SAMPLE_LINKS,
-        kanbanColumns: DEFAULT_KANBAN_COLUMNS,
+        nodes,
+        links: brain.links,
+        kanbanColumns: brain.kanbanColumns.length > 0 ? brain.kanbanColumns : DEFAULT_KANBAN_COLUMNS,
         initialized: true,
         sessions,
       })
     } catch {
-      set({
-        nodes: SAMPLE_NODES,
-        links: SAMPLE_LINKS,
-        kanbanColumns: DEFAULT_KANBAN_COLUMNS,
-        initialized: true,
-        sessions: [],
-      })
+      set({ nodes: [], links: [], kanbanColumns: DEFAULT_KANBAN_COLUMNS, initialized: true, sessions: [] })
     }
   },
 
   addNode: async (partial) => {
+    const activeProjectId = useProjectStore.getState().activeProjectId
     const node: BrainNode = {
+      projectId: activeProjectId ?? undefined,
       ...partial,
       id: `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
     await saveNode(node)
-    set(state => ({ nodes: [...state.nodes, node] }))
+    if (_suppressHistory) {
+      set(state => ({ nodes: [...state.nodes, node] }))
+    } else {
+      set(state => ({
+        nodes: [...state.nodes, node],
+        redoStack: [],
+        undoStack: [
+          ...state.undoStack.slice(-19),
+          {
+            description: `Nó adicionado: ${node.label}`,
+            undo: async () => { await get().removeNode(node.id) },
+          },
+        ],
+      }))
+      window.dispatchEvent(new CustomEvent('jarvis:toast', {
+        detail: { message: `Nó adicionado: ${node.label}`, type: 'success' },
+      }))
+    }
     return node
   },
 
   updateNode: async (id, updates) => {
     const node = get().nodes.find(item => item.id === id)
     if (!node) return
+    const prev = { ...node }
     const updated = { ...node, ...updates, updatedAt: Date.now() }
     await saveNode(updated)
-    set(state => ({ nodes: state.nodes.map(item => item.id === id ? updated : item) }))
+    if (_suppressHistory) {
+      set(state => ({ nodes: state.nodes.map(item => item.id === id ? updated : item) }))
+    } else {
+      set(state => ({
+        nodes: state.nodes.map(item => item.id === id ? updated : item),
+        redoStack: [],
+        undoStack: [
+          ...state.undoStack.slice(-19),
+          {
+            description: `Nó editado: ${prev.label}`,
+            undo: async () => { await get().updateNode(prev.id, prev) },
+          },
+        ],
+      }))
+    }
   },
 
   removeNode: async (id) => {
+    const removedNode = get().nodes.find(n => n.id === id)
     await deleteNodeDB(id)
     const linksToRemove = get().links.filter(link => nodeId(link.source) === id || nodeId(link.target) === id)
     for (const link of linksToRemove) {
       await deleteLinkDB(link.id)
     }
-    set(state => ({
-      nodes: state.nodes.filter(node => node.id !== id),
-      links: state.links.filter(link => nodeId(link.source) !== id && nodeId(link.target) !== id),
-      selectedNodeId: state.selectedNodeId === id ? null : state.selectedNodeId,
-    }))
+    if (_suppressHistory) {
+      set(state => ({
+        nodes: state.nodes.filter(node => node.id !== id),
+        links: state.links.filter(link => nodeId(link.source) !== id && nodeId(link.target) !== id),
+        selectedNodeId: state.selectedNodeId === id ? null : state.selectedNodeId,
+      }))
+    } else {
+      set(state => ({
+        nodes: state.nodes.filter(node => node.id !== id),
+        links: state.links.filter(link => nodeId(link.source) !== id && nodeId(link.target) !== id),
+        selectedNodeId: state.selectedNodeId === id ? null : state.selectedNodeId,
+        redoStack: [],
+        undoStack: removedNode
+          ? [
+              ...state.undoStack.slice(-19),
+              {
+                description: `Nó removido: ${removedNode.label}`,
+                undo: async () => { await get().addNode(removedNode) },
+              },
+            ]
+          : state.undoStack,
+      }))
+      window.dispatchEvent(new CustomEvent('jarvis:toast', {
+        detail: { message: 'Nó removido', type: 'info' },
+      }))
+    }
   },
 
   addLink: async (source, target, label) => {
@@ -277,17 +362,60 @@ export const useBrainStore = create<BrainStore>((set, get) => ({
       strength: 0.6,
     }
     await saveLink(link)
-    set(state => ({ links: [...state.links, link] }))
+    if (_suppressHistory) {
+      set(state => ({ links: [...state.links, link] }))
+    } else {
+      set(state => ({
+        links: [...state.links, link],
+        redoStack: [],
+        undoStack: [
+          ...state.undoStack.slice(-19),
+          {
+            description: 'Conexão criada',
+            undo: async () => { await get().removeLink(link.id) },
+          },
+        ],
+      }))
+      window.dispatchEvent(new CustomEvent('jarvis:toast', {
+        detail: { message: 'Conexão criada', type: 'success' },
+      }))
+    }
     return link
   },
 
   removeLink: async (id) => {
+    const removedLink = get().links.find(l => l.id === id)
     await deleteLinkDB(id)
-    set(state => ({ links: state.links.filter(link => link.id !== id) }))
+    if (_suppressHistory) {
+      set(state => ({ links: state.links.filter(link => link.id !== id) }))
+    } else {
+      set(state => ({
+        links: state.links.filter(link => link.id !== id),
+        redoStack: [],
+        undoStack: removedLink
+          ? [
+              ...state.undoStack.slice(-19),
+              {
+                description: 'Conexão removida',
+                undo: async () => {
+                  await get().addLink(
+                    nodeId(removedLink.source),
+                    nodeId(removedLink.target),
+                    removedLink.label,
+                  )
+                },
+              },
+            ]
+          : state.undoStack,
+      }))
+      window.dispatchEvent(new CustomEvent('jarvis:toast', {
+        detail: { message: 'Conexão removida', type: 'info' },
+      }))
+    }
   },
 
-  selectNode: (id) => {
-    set({ selectedNodeId: id, currentView: 'graph' })
+  selectNode: (id, forceGraphView = true) => {
+    set({ selectedNodeId: id, ...(forceGraphView ? { currentView: 'graph' } : {}) })
     if (id) get().highlightConnections(id)
     else get().clearHighlight()
   },
@@ -455,6 +583,10 @@ export const useBrainStore = create<BrainStore>((set, get) => ({
         selectedNodeId: null,
         activeProjectFilterId: null,
       })
+      window.dispatchEvent(new CustomEvent('jarvis:import-complete'))
+      window.dispatchEvent(new CustomEvent('jarvis:toast', {
+        detail: { message: `Brain importado: ${data.nodes.length} nós`, type: 'success' },
+      }))
       return
     }
 
@@ -483,17 +615,47 @@ export const useBrainStore = create<BrainStore>((set, get) => ({
       sessions: [...sessionMap.values()].sort((a, b) => b.updatedAt - a.updatedAt),
       kanbanColumns: importedColumns,
     })
+    window.dispatchEvent(new CustomEvent('jarvis:import-complete'))
+    window.dispatchEvent(new CustomEvent('jarvis:toast', {
+      detail: { message: `Brain importado: ${data.nodes.length} nós`, type: 'success' },
+    }))
   },
 
-  createActivityNode: async (label, projectId = null) => {
+  clearProjectData: async (projectId) => {
+    const { nodes, links } = get()
+    const nodeIds = new Set(nodes.filter(n => n.projectId === projectId).map(n => n.id))
+    // also remove links connected to those nodes
+    const linksToRemove = links.filter(link => {
+      const source = nodeId(link.source)
+      const target = nodeId(link.target)
+      return nodeIds.has(source) || nodeIds.has(target)
+    })
+    for (const id of nodeIds) await deleteNodeDB(id)
+    for (const link of linksToRemove) await deleteLinkDB(link.id)
+    const removedLinkIds = new Set(linksToRemove.map(l => l.id))
+    set(state => ({
+      nodes: state.nodes.filter(n => !nodeIds.has(n.id)),
+      links: state.links.filter(l => !removedLinkIds.has(l.id)),
+      selectedNodeId: nodeIds.has(state.selectedNodeId ?? '') ? null : state.selectedNodeId,
+    }))
+  },
+
+  createActivityNode: async (label, projectId = null, content, priority) => {
+    const resolvedProjectId = projectId ?? useProjectStore.getState().activeProjectId
+    const priorityTag = priority ? `priority:${priority}` : 'priority:medium'
+    const baseContent = content ?? ''
+    const fullContent = baseContent
+      ? `${baseContent}\n\nStatus: 📋 Backlog.`
+      : 'Status: 📋 Backlog.'
     const node = await get().addNode({
       label,
       category: 'Activity',
-      content: 'Status: 📋 Backlog.',
-      tags: ['status:backlog'],
+      content: fullContent,
+      tags: ['status:backlog', priorityTag],
+      projectId: resolvedProjectId ?? undefined,
     })
-    if (projectId) {
-      await get().addLink(projectId, node.id, 'owns')
+    if (resolvedProjectId) {
+      await get().addLink(resolvedProjectId, node.id, 'owns')
     }
     return node
   },
@@ -517,8 +679,11 @@ export const useBrainStore = create<BrainStore>((set, get) => ({
 
   getKanbanCards: () => {
     const { nodes, links, activeProjectFilterId } = get()
-    const allowedNodeIds = activeProjectFilterId
-      ? buildProjectSubgraphNodeIds(activeProjectFilterId, nodes, links)
+    const storeActiveProjectId = useProjectStore.getState().activeProjectId
+    // Use graph filter if set, otherwise fall back to the projectStore's active project
+    const effectiveProjectId = activeProjectFilterId ?? storeActiveProjectId
+    const allowedNodeIds = effectiveProjectId
+      ? buildProjectSubgraphNodeIds(effectiveProjectId, nodes, links)
       : null
 
     return nodes
@@ -626,6 +791,42 @@ export const useBrainStore = create<BrainStore>((set, get) => ({
   getProjectNodes: () => get().nodes.filter(node => node.category === 'Project'),
 
   getProjectSubgraphNodeIds: (projectId) => buildProjectSubgraphNodeIds(projectId, get().nodes, get().links),
+
+  canUndo: () => get().undoStack.length > 0,
+
+  canRedo: () => get().redoStack.length > 0,
+
+  undo: async () => {
+    const stack = get().undoStack
+    if (stack.length === 0) return
+    const entry = stack[stack.length - 1]
+    set(state => ({ undoStack: state.undoStack.slice(0, -1), redoStack: state.redoStack }))
+    _suppressHistory = true
+    try {
+      await entry.undo()
+    } finally {
+      _suppressHistory = false
+    }
+    set(state => ({
+      redoStack: [...state.redoStack, { description: entry.description, redo: entry.undo }],
+    }))
+  },
+
+  redo: async () => {
+    const stack = get().redoStack
+    if (stack.length === 0) return
+    const entry = stack[stack.length - 1]
+    set(state => ({ redoStack: state.redoStack.slice(0, -1) }))
+    _suppressHistory = true
+    try {
+      await entry.redo()
+    } finally {
+      _suppressHistory = false
+    }
+    set(state => ({
+      undoStack: [...state.undoStack, { description: entry.description, undo: entry.redo }],
+    }))
+  },
 }))
 
 export { CATEGORY_COLORS }

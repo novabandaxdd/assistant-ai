@@ -16,19 +16,37 @@ import { useEffect, useRef } from 'react'
 import { useBrainStore } from '../store/brainStore'
 import { processCommand } from '../utils/jarvisNLP'
 import { askAI, buildKnowledgeContext, loadAIConfig, saveAIConfig, isAIConfigured } from '../utils/aiService'
+import type { AIConfig } from '../utils/aiService'
 import { playActivationSound, speakText, unlockAudio } from '../utils/jarvisVoice'
-import type { KanbanColumnId, NodeCategory } from '../types'
+import type { KanbanCard, KanbanColumnId, NodeCategory } from '../types'
 
 // ── Knowledge context ─────────────────────────────────────────────────────────
 function buildContext() {
   const store = useBrainStore.getState()
-  const hubs   = store.topHubs()
   const recent = [...store.nodes].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+
+  // Resolve active project name from filter ID
+  const activeProjectName = store.activeProjectFilterId
+    ? store.nodes.find(n => n.id === store.activeProjectFilterId)?.label
+    : undefined
+
   return buildKnowledgeContext({
     nodeCount:   store.nodes.length,
     linkCount:   store.links.length,
-    topNodes:    hubs.map(h => ({ label: h.node.label, category: h.node.category, content: h.node.content })),
-    recentNodes: recent.slice(0, 5).map(n => ({ label: n.label, category: n.category, content: n.content })),
+    // Pass ALL nodes, each with tags — grouped by category inside buildKnowledgeContext
+    topNodes:    store.nodes.map(n => ({
+      label:    n.label,
+      category: n.category,
+      content:  n.content,
+      tags:     n.tags,
+    })),
+    recentNodes: recent.slice(0, 10).map(n => ({
+      label:    n.label,
+      category: n.category,
+      content:  n.content,
+      tags:     n.tags,
+    })),
+    activeProjectName,
   })
 }
 
@@ -129,7 +147,13 @@ async function processMessage(
                   const project = args[1]
                     ? store.nodes.find(n => n.category === 'Project' && n.label.toLowerCase().includes(args[1].toLowerCase()))
                     : null
-                  await store.createActivityNode(args[0], project?.id ?? null)
+                  const actContent  = args[2] ?? undefined
+                  const actPriority = (args[3] as KanbanCard['priority']) || undefined
+                  const actColumn   = (args[4] as KanbanColumnId) || undefined
+                  const node = await store.createActivityNode(args[0], project?.id ?? null, actContent, actPriority)
+                  if (actColumn && actColumn !== 'backlog') {
+                    await store.moveActivityToColumn(node.id, actColumn)
+                  }
                   break
                 }
                 case 'MOVE_ACTIVITY': {
@@ -138,6 +162,89 @@ async function processMessage(
                   )
                   if (node) {
                     await store.moveActivityToColumn(node.id, (args[1] as KanbanColumnId) || 'backlog')
+                  }
+                  break
+                }
+                case 'SET_TAGS': {
+                  const node = store.nodes.find(n =>
+                    n.label.toLowerCase().includes(args[0].toLowerCase())
+                  )
+                  if (node) {
+                    const tags = args[1].split(',').map((t: string) => t.trim()).filter(Boolean)
+                    await store.updateNode(node.id, { tags })
+                  }
+                  break
+                }
+                case 'ADD_TAG': {
+                  const node = store.nodes.find(n =>
+                    n.label.toLowerCase().includes(args[0].toLowerCase())
+                  )
+                  if (node) {
+                    const existing = node.tags ?? []
+                    const tag = args[1].trim()
+                    if (tag && !existing.includes(tag)) {
+                      await store.updateNode(node.id, { tags: [...existing, tag] })
+                    }
+                  }
+                  break
+                }
+                case 'BATCH_CREATE': {
+                  try {
+                    const items = JSON.parse(args[0]) as Array<{
+                      label: string
+                      category: string
+                      content?: string
+                      tags?: string[]
+                    }>
+                    for (const item of items) {
+                      await store.addNode({
+                        label:    item.label,
+                        category: (item.category as NodeCategory) || 'Note',
+                        content:  item.content,
+                        tags:     item.tags,
+                      })
+                    }
+                  } catch { /* malformed JSON — skip */ }
+                  break
+                }
+                case 'SET_PROJECT': {
+                  const node = store.nodes.find(n =>
+                    n.label.toLowerCase().includes(args[0].toLowerCase())
+                  )
+                  const project = store.nodes.find(n =>
+                    n.category === 'Project' && n.label.toLowerCase().includes(args[1].toLowerCase())
+                  )
+                  if (node && project) {
+                    await store.updateNode(node.id, { projectId: project.id })
+                  }
+                  break
+                }
+                case 'SUMMARIZE_NODE': {
+                  const node = store.nodes.find(n =>
+                    n.label.toLowerCase().includes(args[0].toLowerCase())
+                  )
+                  if (node) {
+                    const aiConfig = loadAIConfig() as AIConfig | null
+                    if (aiConfig) {
+                      const enrichPrompt = `Baseado no contexto do grafo, escreva um conteúdo descritivo enriquecido e conciso (máx 400 chars) para o nó "${node.label}" (categoria: ${node.category}). Conteúdo atual: "${node.content ?? '(vazio)'}". Responda APENAS com o novo conteúdo, sem prefixos nem formatação extra.`
+                      const enrichResult = await askAI(enrichPrompt, buildContext(), aiConfig, [])
+                      const newContent = enrichResult.text.replace(/GRAPH_ACTION:[^\n]+/g, '').trim()
+                      if (newContent) {
+                        await store.updateNode(node.id, { content: newContent })
+                      }
+                    }
+                  }
+                  break
+                }
+                case 'ANALYZE_GRAPH': {
+                  const aiConfig = loadAIConfig() as AIConfig | null
+                  if (aiConfig) {
+                    const analyzePrompt = `Analise o estado completo do grafo de conhecimento fornecido no contexto. Identifique: (1) nós isolados ou pouco conectados, (2) categorias sub-representadas, (3) possíveis lacunas de conhecimento, (4) oportunidades de conexão entre nós existentes, (5) recomendações de organização. Responda de forma estruturada e acionável, em português.`
+                    const analyzeResult = await askAI(analyzePrompt, buildContext(), aiConfig, [])
+                    const analysisText = analyzeResult.text.replace(/GRAPH_ACTION:[^\n]+/g, '').trim()
+                    if (analysisText) {
+                      useBrainStore.getState().addMessage({ role: 'jarvis', text: analysisText })
+                    }
                   }
                   break
                 }

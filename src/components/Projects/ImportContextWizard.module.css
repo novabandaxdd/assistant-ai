@@ -1,0 +1,306 @@
+/* ── ImportContextWizard — JARVIS dark modal aesthetic ──────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 350;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  padding: 16px;
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 580px;
+  max-height: calc(100vh - 48px);
+  background: #0d0f16;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 20px;
+  box-shadow: 0 0 50px rgba(0, 180, 255, 0.1), 0 32px 80px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-shrink: 0;
+}
+
+.headerText {}
+
+.eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(0, 229, 255, 0.65);
+  margin-bottom: 3px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #f0f8ff;
+  margin: 0;
+}
+
+.closeBtn {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.14s ease;
+  flex-shrink: 0;
+}
+
+.closeBtn:hover {
+  background: rgba(255, 255, 255, 0.13);
+  color: #f7fbff;
+}
+
+/* ── Body ────────────────────────────────────────────────────────────────── */
+.body {
+  flex: 1;
+  padding: 22px 22px 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.body::-webkit-scrollbar { width: 4px; }
+.body::-webkit-scrollbar-track { background: transparent; }
+.body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+/* ── Step animation ──────────────────────────────────────────────────────── */
+.step {
+  animation: fadeUp 0.24s ease;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Labels ──────────────────────────────────────────────────────────────── */
+.label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: rgba(255, 255, 255, 0.42);
+  margin-bottom: 8px;
+}
+
+/* ── Textarea ────────────────────────────────────────────────────────────── */
+.textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 12px;
+  color: #d4e8f0;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 160px;
+  outline: none;
+  transition: border-color 0.18s;
+  box-sizing: border-box;
+}
+
+.textarea::placeholder { color: rgba(255, 255, 255, 0.18); }
+.textarea:focus { border-color: rgba(0, 229, 255, 0.45); }
+
+/* ── Or divider ──────────────────────────────────────────────────────────── */
+.orDivider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+  color: rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+}
+
+.orDivider::before,
+.orDivider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── File upload button ──────────────────────────────────────────────────── */
+.fileLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px dashed rgba(0, 229, 255, 0.25);
+  border-radius: 10px;
+  cursor: pointer;
+  color: rgba(0, 229, 255, 0.6);
+  font-size: 12px;
+  font-family: inherit;
+  transition: border-color 0.18s, color 0.18s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fileLabel:hover {
+  border-color: rgba(0, 229, 255, 0.5);
+  color: #00e5ff;
+}
+
+.hiddenFileInput { display: none; }
+
+/* ── Error message ───────────────────────────────────────────────────────── */
+.error {
+  margin-top: 10px;
+  font-size: 12px;
+  color: #f87171;
+  padding: 9px 12px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  border-radius: 8px;
+}
+
+/* ── Preview summary ─────────────────────────────────────────────────────── */
+.previewBox {
+  background: rgba(0, 229, 255, 0.04);
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 8px;
+}
+
+.previewTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0f8ff;
+  margin-bottom: 12px;
+}
+
+.previewRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.65);
+  margin-bottom: 6px;
+}
+
+.previewRowLabel {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.35);
+  width: 120px;
+  flex-shrink: 0;
+}
+
+.previewValue {
+  color: #d4f0ff;
+  font-size: 13px;
+}
+
+.categoryList {
+  font-size: 12px;
+  color: rgba(200, 230, 255, 0.7);
+  line-height: 1.7;
+}
+
+/* ── Success state ───────────────────────────────────────────────────────── */
+.successBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 28px 16px;
+  gap: 12px;
+}
+
+.successIcon {
+  font-size: 42px;
+}
+
+.successTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #f0f8ff;
+  margin: 0;
+}
+
+.successDesc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  flex-shrink: 0;
+  margin-top: 16px;
+}
+
+.cancelBtn {
+  padding: 9px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: 0.13s ease;
+}
+
+.cancelBtn:hover { background: rgba(255,255,255,0.06); color: #f7fbff; }
+
+.actionBtn {
+  padding: 9px 22px;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(0, 229, 255, 0.11);
+  color: #98fbff;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: 0.13s ease;
+}
+
+.actionBtn:hover:not(:disabled) { background: rgba(0, 229, 255, 0.2); }
+
+.actionBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 620px) {
+  .modal { max-width: 100%; border-radius: 14px; }
+}

@@ -225,7 +225,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
         <div className={styles.header}>
           <div className={styles.title}>
             <span className={styles.titleIcon}>⚙</span>
-            <span>JARVIS — AI Configuration</span>
+            <span>JARVIS — Configuração de IA</span>
           </div>
           <button className={styles.close} onClick={onClose}>✕</button>
         </div>
@@ -243,7 +243,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
 
           {/* ── Provider selector */}
           <div className={styles.field}>
-            <label className={styles.label}>Provider</label>
+            <label className={styles.label}>Provedor</label>
             <div className={styles.providerGrid}>
               {PROVIDER_ORDER.map(p => {
                 const m = PROVIDERS[p]
@@ -275,7 +275,7 @@ export default function SettingsPanel({ open, onClose }: Props) {
                   <label className={styles.label}>
                     Base URL
                     {provider === 'roo' && (
-                      <span className={styles.preset}>IBM proxy pre-filled</span>
+                      <span className={styles.preset}>proxy IBM pré-configurado</span>
                     )}
                   </label>
                   <input
@@ -288,11 +288,11 @@ export default function SettingsPanel({ open, onClose }: Props) {
                   />
                   {provider === 'roo' && baseUrl.startsWith('/api/') ? (
                     <div className={`${styles.hint} ${styles.hintGood}`}>
-                      ✅ Using Vite dev proxy (<code>/api/roo</code>) — CORS bypassed automatically.
+                      ✅ Usando proxy dev Vite (<code>/api/roo</code>) — CORS ignorado automaticamente.
                     </div>
                   ) : (
                     <div className={styles.hint}>
-                      The endpoint must accept <code>POST /chat/completions</code>
+                      O endpoint deve aceitar <code>POST /chat/completions</code>
                     </div>
                   )}
                 </div>
@@ -301,10 +301,10 @@ export default function SettingsPanel({ open, onClose }: Props) {
               {/* API Key */}
               <div className={styles.field}>
                 <label className={styles.label}>
-                  API Key
+                  Chave de API
                   {meta.docsUrl && (
                     <a href={meta.docsUrl} target="_blank" rel="noopener noreferrer" className={styles.getKey}>
-                      Get key ↗
+                      Obter chave ↗
                     </a>
                   )}
                 </label>
@@ -329,13 +329,13 @@ export default function SettingsPanel({ open, onClose }: Props) {
               {/* Model */}
               <div className={styles.twoCol}>
                 <div className={styles.field}>
-                  <label className={styles.label}>Model</label>
+                  <label className={styles.label}>Modelo</label>
                   <select
                     className={styles.select}
                     value={model}
                     onChange={e => setModel(e.target.value)}
                   >
-                    <option value="">Default ({meta.models[0]})</option>
+                    <option value="">Padrão ({meta.models[0]})</option>
                     {meta.models.map(m => (
                       <option key={m} value={m}>{m}</option>
                     ))}
@@ -343,8 +343,8 @@ export default function SettingsPanel({ open, onClose }: Props) {
                 </div>
                 <div className={styles.field}>
                   <label className={styles.label}>
-                    Max tokens
-                    {provider === 'roo' && <span className={styles.optional}> (up to 150k)</span>}
+                    Máx. tokens
+                    {provider === 'roo' && <span className={styles.optional}> (até 150k)</span>}
                   </label>
                   <input
                     className={styles.input}
@@ -456,8 +456,8 @@ export default function SettingsPanel({ open, onClose }: Props) {
           {status !== 'idle' && (
             <div className={`${styles.statusMsg} ${styles[status]}`}>
               {status === 'saved'   && `✅ Salvo! JARVIS está usando ${meta.label}. Configuração persistida.`}
-              {status === 'cleared' && '✅ Configurações apagadas. Usando NLP Local.'}
-              {status === 'testing' && '⏳ Testando conexão...'}
+              {status === 'cleared' && '✅ Configurações apagadas. Usando NLP local.'}
+              {status === 'testing' && '⏳ Testando conexão…'}
               {status === 'ok'      && `✅ Conectado! Resposta: "${statusMsg}"`}
               {status === 'error'   && `❌ ${statusMsg}`}
             </div>

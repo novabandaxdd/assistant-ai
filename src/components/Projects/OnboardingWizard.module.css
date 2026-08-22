@@ -1,0 +1,649 @@
+/* ── OnboardingWizard — full-screen JARVIS dark aesthetic ─────────────────── */
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #080a10;
+  padding: 24px 16px;
+}
+
+/* subtle scanline texture */
+.root::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 229, 255, 0.012) 2px,
+      rgba(0, 229, 255, 0.012) 4px
+    );
+  pointer-events: none;
+}
+
+/* ── Card ─────────────────────────────────────────────────────────────────── */
+.card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 560px;
+  background: rgba(8, 14, 24, 0.95);
+  border: 1px solid rgba(0, 229, 255, 0.22);
+  border-radius: 20px;
+  box-shadow: 0 0 60px rgba(0, 180, 255, 0.12), 0 32px 80px rgba(0, 0, 0, 0.7);
+  overflow: hidden;
+}
+
+/* ── Step indicator ───────────────────────────────────────────────────────── */
+.stepBar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 18px 28px 0;
+}
+
+.stepDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  transition: background 0.3s;
+}
+
+.stepDot.active {
+  background: #00e5ff;
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
+}
+
+.stepDot.done {
+  background: rgba(0, 229, 255, 0.4);
+}
+
+.stepLine {
+  flex: 1;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.07);
+  margin: 0 6px;
+}
+
+/* ── Body ─────────────────────────────────────────────────────────────────── */
+.body {
+  padding: 32px 28px 28px;
+}
+
+/* ── Step transition container ────────────────────────────────────────────── */
+.step {
+  animation: stepIn 0.28s ease;
+}
+
+@keyframes stepIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Eyebrow / label ─────────────────────────────────────────────────────── */
+.eyebrow {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(0, 229, 255, 0.7);
+  margin-bottom: 10px;
+}
+
+/* ── Title ───────────────────────────────────────────────────────────────── */
+.title {
+  font-size: 26px;
+  font-weight: 800;
+  color: #f0f8ff;
+  line-height: 1.2;
+  margin: 0 0 6px;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.45);
+  margin: 0 0 28px;
+  line-height: 1.6;
+}
+
+/* ── Label for inputs ────────────────────────────────────────────────────── */
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* ── Text input ──────────────────────────────────────────────────────────── */
+.input {
+  width: 100%;
+  padding: 13px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  border-radius: 12px;
+  color: #f0f8ff;
+  font-size: 16px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+  box-sizing: border-box;
+  margin-bottom: 24px;
+}
+
+.input::placeholder {
+  color: rgba(255, 255, 255, 0.22);
+}
+
+.input:focus {
+  border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 229, 255, 0.03);
+}
+
+/* ── Project type grid ───────────────────────────────────────────────────── */
+.typeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+@media (max-width: 480px) {
+  .typeGrid { grid-template-columns: repeat(2, 1fr); }
+}
+
+.typeCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+}
+
+.typeCard:hover {
+  border-color: rgba(0, 229, 255, 0.3);
+  background: rgba(0, 229, 255, 0.04);
+}
+
+.typeCard.selected {
+  border-color: rgba(0, 229, 255, 0.7);
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.typeIcon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.typeLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.typeCard.selected .typeLabel {
+  color: #00e5ff;
+}
+
+/* ── Start option cards (step 3) ─────────────────────────────────────────── */
+.startOptions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.startCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.18s, background 0.18s;
+  width: 100%;
+}
+
+.startCard:hover {
+  border-color: rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.04);
+}
+
+.startCard.selected {
+  border-color: rgba(0, 229, 255, 0.65);
+  background: rgba(0, 229, 255, 0.07);
+}
+
+.startCardIcon {
+  font-size: 24px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.startCardText strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f0f8ff;
+  margin-bottom: 3px;
+}
+
+.startCardText span {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.42);
+  line-height: 1.5;
+}
+
+/* ── Inline import area ──────────────────────────────────────────────────── */
+.importArea {
+  margin-top: 16px;
+  animation: stepIn 0.22s ease;
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 12px;
+  color: #d4e8f0;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 130px;
+  outline: none;
+  transition: border-color 0.18s;
+  box-sizing: border-box;
+}
+
+.textarea::placeholder { color: rgba(255, 255, 255, 0.18); }
+
+.textarea:focus { border-color: rgba(0, 229, 255, 0.45); }
+
+.importOr {
+  text-align: center;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  margin: 10px 0;
+}
+
+.fileLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: 1px dashed rgba(0, 229, 255, 0.25);
+  border-radius: 10px;
+  cursor: pointer;
+  color: rgba(0, 229, 255, 0.6);
+  font-size: 12px;
+  transition: border-color 0.18s, color 0.18s;
+  margin-bottom: 10px;
+}
+
+.fileLabel:hover {
+  border-color: rgba(0, 229, 255, 0.5);
+  color: #00e5ff;
+}
+
+.hiddenFileInput { display: none; }
+
+.importError {
+  font-size: 12px;
+  color: #f87171;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(248, 113, 113, 0.08);
+  border-radius: 8px;
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
+
+/* ── Actions row ─────────────────────────────────────────────────────────── */
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.backBtn {
+  padding: 10px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.backBtn:hover { color: rgba(255, 255, 255, 0.75); border-color: rgba(255,255,255,0.2); }
+
+.continueBtn {
+  padding: 10px 24px;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  border-radius: 10px;
+  background: rgba(0, 229, 255, 0.12);
+  color: #98fbff;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+  letter-spacing: 0.04em;
+}
+
+.continueBtn:hover:not(:disabled) { background: rgba(0, 229, 255, 0.22); }
+
+.continueBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.skipLink {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s;
+}
+
+.skipLink:hover { color: rgba(255, 255, 255, 0.55); }
+
+/* ── Prompt hint row ──────────────────────────────────────────────────────── */
+.promptHint {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(0, 229, 255, 0.04);
+  border: 1px solid rgba(0, 229, 255, 0.14);
+  border-radius: 10px;
+  margin-top: 4px;
+}
+
+.promptHintText {
+  font-size: 12px;
+  color: rgba(180, 220, 240, 0.7);
+  line-height: 1.55;
+}
+
+.promptToggleBtn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  border-radius: 7px;
+  padding: 5px 12px;
+  color: rgba(0, 229, 255, 0.85);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: 0.14s ease;
+}
+
+.promptToggleBtn:hover {
+  background: rgba(0, 229, 255, 0.08);
+}
+
+/* ── Prompt box (inline viewer) ───────────────────────────────────────────── */
+.promptBox {
+  border: 1px solid rgba(0, 229, 255, 0.18);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(4, 8, 16, 0.9);
+  margin-top: 4px;
+}
+
+.promptBoxHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: rgba(0, 229, 255, 0.06);
+  border-bottom: 1px solid rgba(0, 229, 255, 0.12);
+}
+
+.promptBoxTitle {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(0, 229, 255, 0.7);
+}
+
+.copyPromptBtn {
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 6px;
+  padding: 4px 12px;
+  color: rgba(0, 229, 255, 0.9);
+  font-size: 11px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: 0.14s ease;
+}
+
+.copyPromptBtn:hover {
+  background: rgba(0, 229, 255, 0.18);
+}
+
+.promptPre {
+  padding: 12px 14px;
+  font-family: "Cascadia Code", "Fira Code", "Courier New", monospace;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: rgba(200, 230, 245, 0.75);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 240px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,229,255,0.15) transparent;
+}
+
+.promptPre::-webkit-scrollbar { width: 4px; }
+.promptPre::-webkit-scrollbar-thumb { background: rgba(0,229,255,0.2); border-radius: 4px; }
+
+/* ── Drive step (step 4) ──────────────────────────────────────────────────── */
+.driveCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(0, 229, 255, 0.03);
+  border: 1px solid rgba(0, 229, 255, 0.14);
+  border-radius: 12px;
+  margin-top: 4px;
+}
+
+.driveDescription { display: flex; flex-direction: column; gap: 10px; }
+
+.driveFeatureList {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.driveFeature {
+  font-size: 13px;
+  color: rgba(200, 225, 240, 0.7);
+  line-height: 1.4;
+}
+
+.driveFeature strong { color: rgba(200, 225, 240, 0.95); }
+
+/* Authenticated user row inside drive card */
+.driveUser {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.driveAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.driveAvatarPlaceholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: rgba(0, 229, 255, 0.9);
+  flex-shrink: 0;
+}
+
+.driveUserInfo { flex: 1; min-width: 0; }
+
+.driveUserName {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.driveUserEmail {
+  font-size: 11px;
+  color: rgba(148, 163, 184, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Connect button */
+.driveConnectBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 10px;
+  color: #f0f9ff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+  cursor: pointer;
+  transition: background 0.16s, border-color 0.16s, transform 0.12s;
+}
+
+.driveConnectBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.driveConnectBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.driveIcon {
+  width: 20px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.driveSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-top-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  animation: driveSpinAnim 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes driveSpinAnim {
+  to { transform: rotate(360deg); }
+}
+
+.driveError {
+  padding: 8px 12px;
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.22);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  line-height: 1.5;
+}
+
+/* Success state */
+.driveSuccess {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: rgba(74, 222, 128, 0.07);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 12px;
+  margin-top: 4px;
+}
+
+.driveSuccessIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(74, 222, 128, 0.2);
+  border: 1px solid rgba(74, 222, 128, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #4ade80;
+  flex-shrink: 0;
+}
+
+.driveSuccessText {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.driveSuccessText strong {
+  font-size: 13px;
+  color: #4ade80;
+}
+
+.driveSuccessText span {
+  font-size: 12px;
+  color: rgba(148, 163, 184, 0.7);
+}

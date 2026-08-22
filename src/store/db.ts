@@ -1,8 +1,8 @@
 import { openDB, type IDBPDatabase } from 'idb'
-import type { BrainNode, BrainLink, BrainDB, ChatSession, KanbanColumn } from '../types'
+import type { BrainNode, BrainLink, BrainDB, ChatSession, KanbanColumn, JarvisProject, ProjectSnapshot } from '../types'
 
 const DB_NAME    = 'jarvis-brain'
-const DB_VERSION = 3
+const DB_VERSION = 4
 
 const DEFAULT_KANBAN_COLUMNS: KanbanColumn[] = [
   { id: 'backlog', title: 'Backlog', order: 0 },
@@ -16,7 +16,7 @@ let db: IDBPDatabase | null = null
 async function getDB() {
   if (db) return db
   db = await openDB(DB_NAME, DB_VERSION, {
-    upgrade(db, oldVersion) {
+    upgrade(db, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {
         db.createObjectStore('nodes', { keyPath: 'id' })
         db.createObjectStore('links', { keyPath: 'id' })
@@ -27,6 +27,12 @@ async function getDB() {
       }
       if (oldVersion < 3) {
         db.createObjectStore('kanbanColumns', { keyPath: 'id' })
+      }
+      if (oldVersion < 4) {
+        db.createObjectStore('projects', { keyPath: 'id' })
+        db.createObjectStore('snapshots', { keyPath: 'id' })
+        const nodesStore = tx.objectStore('nodes')
+        nodesStore.createIndex('projectId', 'projectId')
       }
     },
   })
@@ -92,6 +98,32 @@ export async function clearDB(): Promise<void> {
   } catch {}
 }
 
+export async function clearProjectsDB(): Promise<void> {
+  try {
+    const d = await getDB()
+    await d.clear('projects')
+  } catch {}
+}
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+
+export async function saveProject(project: JarvisProject): Promise<void> {
+  try { const d = await getDB(); await d.put('projects', project) } catch {}
+}
+
+export async function loadProjects(): Promise<JarvisProject[]> {
+  try {
+    const d = await getDB()
+    return d.getAll('projects') as Promise<JarvisProject[]>
+  } catch {
+    return []
+  }
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  try { const d = await getDB(); await d.delete('projects', id) } catch {}
+}
+
 // ── Chat sessions ─────────────────────────────────────────────────────────────
 
 export async function loadSessions(): Promise<ChatSession[]> {
@@ -111,4 +143,26 @@ export async function saveSession(session: ChatSession): Promise<void> {
 
 export async function deleteSession(id: string): Promise<void> {
   try { const d = await getDB(); await d.delete('sessions', id) } catch {}
+}
+
+// ── Snapshots ─────────────────────────────────────────────────────────────────
+
+export async function saveSnapshot(snapshot: ProjectSnapshot): Promise<void> {
+  try { const d = await getDB(); await d.put('snapshots', snapshot) } catch {}
+}
+
+export async function loadSnapshots(projectId: string): Promise<ProjectSnapshot[]> {
+  try {
+    const d = await getDB()
+    const all = await d.getAll('snapshots') as ProjectSnapshot[]
+    return all
+      .filter(s => s.projectId === projectId)
+      .sort((a, b) => b.createdAt - a.createdAt)
+  } catch {
+    return []
+  }
+}
+
+export async function deleteSnapshot(id: string): Promise<void> {
+  try { const d = await getDB(); await d.delete('snapshots', id) } catch {}
 }

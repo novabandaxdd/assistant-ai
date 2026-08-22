@@ -317,6 +317,7 @@
   gap: 3px;
   max-width: 295px;
 }
+.jarvisMsg .bubbleWrap { max-width: 320px; }
 .userMsg .bubbleWrap { align-items: flex-end; }
 
 /* ── Bubbles ──────────────────────────────────────────────────────────────── */
@@ -328,18 +329,141 @@
   word-break: break-word;
 }
 
-.jarvisMsg .bubble {
+.jarvisBubble {
   background: rgba(0, 245, 255, 0.07);
   border: 1px solid rgba(0, 245, 255, 0.13);
+  border-left: 2px solid rgba(0, 245, 255, 0.45);
   color: rgba(255, 255, 255, 0.9);
   border-radius: 4px 12px 12px 12px;
+  position: relative;
+  max-width: 100%;
 }
 
-.userMsg .bubble {
+.userBubble {
   background: rgba(124, 58, 237, 0.18);
   border: 1px solid rgba(124, 58, 237, 0.22);
+  border-right: 2px solid rgba(124, 58, 237, 0.4);
   color: rgba(255, 255, 255, 0.9);
   border-radius: 12px 4px 12px 12px;
+}
+
+/* ── Message content ──────────────────────────────────────────────────────── */
+.msgContent {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* ── Inline code ──────────────────────────────────────────────────────────── */
+.inlineCode {
+  font-family: 'Fira Code', 'Consolas', 'Menlo', monospace;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(0, 245, 255, 0.12);
+  color: rgba(0, 245, 255, 0.85);
+  padding: 2px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* ── Message links ────────────────────────────────────────────────────────── */
+.msgLink {
+  color: rgba(0, 245, 255, 0.8);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+.msgLink:hover { color: #00f5ff; }
+
+/* ── Bullet / numbered list items ─────────────────────────────────────────── */
+.bulletItem,
+.numberedItem {
+  display: flex;
+  gap: 7px;
+  align-items: baseline;
+}
+
+.bulletDot {
+  color: rgba(0, 245, 255, 0.6);
+  flex-shrink: 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.numberedDot {
+  color: rgba(0, 245, 255, 0.5);
+  flex-shrink: 0;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  min-width: 16px;
+  line-height: 1.6;
+}
+
+/* ── Spacer between paragraphs ────────────────────────────────────────────── */
+.msgSpacer {
+  height: 6px;
+}
+
+/* ── Message actions toolbar ──────────────────────────────────────────────── */
+.msgActions {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.jarvisBubble:hover .msgActions {
+  opacity: 1;
+}
+
+/* ── Copy button ──────────────────────────────────────────────────────────── */
+.copyBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+}
+.copyBtn:hover {
+  background: rgba(0, 245, 255, 0.1);
+  border-color: rgba(0, 245, 255, 0.3);
+  color: #00f5ff;
+}
+
+.copyBtnActive {
+  background: rgba(0, 245, 255, 0.12) !important;
+  border-color: rgba(0, 245, 255, 0.4) !important;
+  color: #00f5ff !important;
+}
+
+/* ── Copy tooltip ─────────────────────────────────────────────────────────── */
+.copyTooltip {
+  position: absolute;
+  bottom: calc(100% + 5px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 245, 255, 0.15);
+  border: 1px solid rgba(0, 245, 255, 0.3);
+  color: #00f5ff;
+  font-size: 10px;
+  white-space: nowrap;
+  padding: 3px 7px;
+  border-radius: 5px;
+  pointer-events: none;
+  animation: tooltipIn 0.12s ease;
+}
+@keyframes tooltipIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(3px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0);   }
 }
 
 /* ── Timestamp ────────────────────────────────────────────────────────────── */
@@ -354,25 +478,77 @@
 /* ── Thinking animation ───────────────────────────────────────────────────── */
 .thinking {
   display: flex !important;
-  align-items: center;
-  gap: 5px;
+  flex-direction: column;
+  gap: 6px;
   padding: 12px 16px !important;
   min-height: 40px;
 }
 
-.thinking span {
+.thinkingDots {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.thinkingDots span {
   width: 7px;
   height: 7px;
   border-radius: 50%;
   background: rgba(0, 245, 255, 0.55);
   animation: thinkDot 1.2s ease-in-out infinite;
 }
-.thinking span:nth-child(2) { animation-delay: 0.2s; }
-.thinking span:nth-child(3) { animation-delay: 0.4s; }
+.thinkingDots span:nth-child(2) { animation-delay: 0.2s; }
+.thinkingDots span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes thinkDot {
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
   40%           { transform: scale(1);   opacity: 1;   }
+}
+
+/* ── Thinking cycling text ────────────────────────────────────────────────── */
+.thinkingText {
+  font-size: 10px;
+  color: rgba(0, 245, 255, 0.45);
+  letter-spacing: 0.3px;
+  animation: thinkTextFade 0.35s ease;
+}
+@keyframes thinkTextFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Quick chips ──────────────────────────────────────────────────────────── */
+.quickChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 14px 6px;
+  border-top: 1px solid rgba(0, 245, 255, 0.06);
+  background: rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  animation: chipsIn 0.18s ease;
+}
+@keyframes chipsIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+.quickChip {
+  background: rgba(0, 245, 255, 0.05);
+  border: 1px solid rgba(0, 245, 255, 0.18);
+  border-radius: 20px;
+  color: rgba(0, 245, 255, 0.65);
+  font-size: 11px;
+  padding: 4px 11px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.14s, border-color 0.14s, color 0.14s;
+  font-family: inherit;
+}
+.quickChip:hover {
+  background: rgba(0, 245, 255, 0.12);
+  border-color: rgba(0, 245, 255, 0.4);
+  color: #00f5ff;
 }
 
 /* ── Input row ────────────────────────────────────────────────────────────── */

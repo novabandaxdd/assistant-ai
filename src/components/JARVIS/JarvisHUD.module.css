@@ -122,17 +122,65 @@
   transition: color 0.4s, text-shadow 0.4s;
 }
 
-/* ── Below HUD (state + badge) ───────────────────────────────────────────── */
+/* ── Below HUD ────────────────────────────────────────────────────────────── */
 .below {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  width: 100%;
+  /* glass panel behind all below-ring elements */
+  background: rgba(4, 8, 16, 0.72);
+  border: 1px solid rgba(0, 229, 255, 0.10);
+  border-radius: 14px;
+  padding: 8px 10px 10px;
+  backdrop-filter: blur(8px);
+}
+
+/* ── Profile + Sync row (top of panel) ──────────────────────────────────── */
+.profileSyncRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
   gap: 6px;
-  margin-top: 4px;
+  min-height: 24px;
+}
+
+/* ── Project switcher (full width) ──────────────────────────────────────── */
+.projectRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   width: 100%;
 }
 
-/* State row */
+/* ── Divider ────────────────────────────────────────────────────────────── */
+.belowDivider {
+  width: 70%;
+  height: 1px;
+  background: rgba(0, 229, 255, 0.08);
+  margin: 2px 0;
+}
+
+/* ── Sync badge (right side of profileSyncRow) ──────────────────────────── */
+.syncBadge {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  opacity: 0.70;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.syncBadge:hover { opacity: 1; }
+
+/* ── State row ───────────────────────────────────────────────────────────── */
 .stateRow {
   display: flex;
   align-items: center;
@@ -140,8 +188,8 @@
 }
 
 .stateDot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   flex-shrink: 0;
   transition: background 0.3s, box-shadow 0.3s;
@@ -155,11 +203,11 @@
   transition: color 0.3s;
 }
 
-/* Sub-label line */
+/* Sub-label */
 .subLabel {
-  font-size: 11px;
-  color: rgba(180, 210, 230, 0.5);
-  letter-spacing: 0.5px;
+  font-size: 10px;
+  color: rgba(180, 210, 230, 0.45);
+  letter-spacing: 0.4px;
   margin-top: -2px;
 }
 
@@ -167,47 +215,89 @@
 .agentBadge {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(0, 10, 20, 0.7);
-  border: 1px solid rgba(0, 229, 255, 0.3);
+  gap: 5px;
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.18);
   border-radius: 20px;
-  padding: 5px 14px 5px 10px;
+  padding: 4px 12px 4px 8px;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 .agentBadge:hover {
-  background: rgba(0, 229, 255, 0.08);
-  border-color: rgba(0, 229, 255, 0.55);
+  background: rgba(0, 229, 255, 0.10);
+  border-color: rgba(0, 229, 255, 0.45);
 }
 
 .agentDiamond {
-  font-size: 9px;
+  font-size: 8px;
   color: #f59e0b;
   line-height: 1;
 }
 
 .agentName {
   font-family: 'Orbitron', 'Courier New', monospace;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  color: rgba(200, 240, 255, 0.85);
-  letter-spacing: 1.5px;
+  color: rgba(200, 240, 255, 0.80);
+  letter-spacing: 1.2px;
 }
 
 /* ── State-specific overrides ────────────────────────────────────────────── */
-/* Thinking: orange tint on badge */
-.thinking .agentBadge {
-  border-color: rgba(245, 158, 11, 0.35);
+.thinking .agentBadge { border-color: rgba(245, 158, 11, 0.30); }
+.thinking .agentName  { color: rgba(255, 220, 150, 0.85); }
+.speaking .agentBadge { border-color: rgba(0, 229, 255, 0.50); background: rgba(0, 50, 60, 0.45); }
+
+/* ── User Profile Badge ──────────────────────────────────────────────────── */
+.profileBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  border-radius: 20px;
+  padding: 2px 4px 2px 2px;
+  cursor: pointer;
+  transition: background 0.18s;
+  overflow: hidden;
+  flex-shrink: 0;
 }
-.thinking .agentName {
-  color: rgba(255, 220, 150, 0.85);
+.profileBadge:hover { background: rgba(0, 229, 255, 0.07); }
+
+.profileAvatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1.5px solid rgba(0, 229, 255, 0.35);
 }
 
-/* Speaking: bright cyan badge */
-.speaking .agentBadge {
-  border-color: rgba(0, 229, 255, 0.55);
-  background: rgba(0, 50, 60, 0.5);
+.profileInitial {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(0, 229, 255, 0.15);
+  border: 1.5px solid rgba(0, 229, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(0, 229, 255, 0.9);
+  flex-shrink: 0;
+}
+
+.profileName {
+  font-family: 'Orbitron', 'Courier New', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: rgba(180, 230, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 72px;
 }
 
 /* ── Unsupported warning ─────────────────────────────────────────────────── */

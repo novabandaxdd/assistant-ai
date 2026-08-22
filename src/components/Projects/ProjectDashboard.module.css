@@ -1,0 +1,450 @@
+/* ── ProjectDashboard — JARVIS dark modal ─────────────────────────────────── */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 5, 12, 0.75);
+  z-index: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  background: rgba(6, 14, 24, 0.97);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 12px;
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 20px 22px 22px;
+  box-shadow: 0 0 48px rgba(0, 229, 255, 0.12), 0 16px 64px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 229, 255, 0.2) transparent;
+}
+
+/* ── Header ────────────────────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.projectTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #f0f9ff;
+  letter-spacing: 0.04em;
+  word-break: break-word;
+}
+
+.projectDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.projectMeta {
+  font-size: 10px;
+  color: #64748b;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.closeBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: border-color 0.2s, color 0.2s;
+}
+.closeBtn:hover {
+  border-color: rgba(255, 80, 80, 0.4);
+  color: #f87171;
+}
+
+/* ── Divider ───────────────────────────────────────────────────────────────── */
+.divider {
+  height: 1px;
+  background: rgba(0, 229, 255, 0.1);
+  margin: 0;
+}
+
+/* ── Section ───────────────────────────────────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionTitle {
+  font-size: 10px;
+  color: #64748b;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ── Context Health ────────────────────────────────────────────────────────── */
+.healthRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.healthBarWrap {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.healthBar {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.healthScore {
+  font-size: 13px;
+  font-weight: 700;
+  color: #e2e8f0;
+  min-width: 36px;
+  text-align: right;
+}
+
+.healthGrade {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.gradeExcellent { color: #4ade80; }
+.gradeGood      { color: #86efac; }
+.gradeFair      { color: #fbbf24; }
+.gradePoor      { color: #f87171; }
+
+.checkList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.checkItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.checkIcon {
+  font-size: 12px;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+.checkIcon.ok   { color: #4ade80; }
+.checkIcon.warn { color: #fbbf24; }
+.checkIcon.fail { color: #f87171; }
+
+.checkLabel {
+  flex: 1;
+}
+
+.checkDetail {
+  font-size: 10px;
+  color: #475569;
+  margin-left: 24px;
+  margin-top: -2px;
+}
+
+/* ── Stats grid ────────────────────────────────────────────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.statCard {
+  background: rgba(0, 229, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.12);
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+}
+
+.statValue {
+  font-size: 18px;
+  font-weight: 700;
+  color: #00e5ff;
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 9px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+
+/* ── Snapshots ─────────────────────────────────────────────────────────────── */
+.snapshotList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.snapshotItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 5px;
+}
+
+.snapshotDate {
+  flex: 1;
+  font-size: 11px;
+  color: #94a3b8;
+}
+
+.snapshotSource {
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.snapshotSource.auto {
+  background: rgba(0, 229, 255, 0.1);
+  color: #67e8f9;
+}
+
+.snapshotSource.manual {
+  background: rgba(245, 158, 11, 0.1);
+  color: #fbbf24;
+}
+
+.snapshotLabel {
+  font-size: 10px;
+  color: #64748b;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.restoreBtn {
+  background: transparent;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 4px;
+  padding: 3px 8px;
+  color: rgba(0, 229, 255, 0.7);
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  transition: border-color 0.2s, color 0.2s;
+}
+.restoreBtn:hover {
+  border-color: rgba(0, 229, 255, 0.6);
+  color: #00e5ff;
+}
+
+.noSnapshots {
+  font-size: 11px;
+  color: #475569;
+  text-align: center;
+  padding: 8px;
+}
+
+/* ── Action buttons ────────────────────────────────────────────────────────── */
+.actionRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  flex: 1;
+  min-width: 80px;
+  background: transparent;
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 6px;
+  padding: 7px 12px;
+  color: rgba(0, 229, 255, 0.7);
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  text-align: center;
+}
+.btn:hover {
+  background: rgba(0, 229, 255, 0.08);
+  border-color: rgba(0, 229, 255, 0.6);
+  color: #00e5ff;
+}
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btnDanger {
+  composes: btn;
+  border-color: rgba(248, 113, 113, 0.25);
+  color: rgba(248, 113, 113, 0.7);
+}
+.btnDanger:hover {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: rgba(248, 113, 113, 0.6);
+  color: #f87171;
+}
+
+.btnCreate {
+  composes: btn;
+  border-color: rgba(74, 222, 128, 0.3);
+  color: rgba(74, 222, 128, 0.8);
+}
+.btnCreate:hover {
+  background: rgba(74, 222, 128, 0.08);
+  border-color: rgba(74, 222, 128, 0.6);
+  color: #4ade80;
+}
+
+/* ── Edit form ─────────────────────────────────────────────────────────────── */
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: rgba(0, 229, 255, 0.04);
+  border: 1px solid rgba(0, 229, 255, 0.15);
+  border-radius: 8px;
+}
+
+.editRow {
+  display: flex;
+  gap: 8px;
+}
+
+.editInput,
+.editSelect {
+  flex: 1;
+  background: rgba(0, 20, 30, 0.9);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 4px;
+  padding: 6px 8px;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.editInput:focus,
+.editSelect:focus {
+  border-color: rgba(0, 229, 255, 0.7);
+}
+
+.editSelect option {
+  background: #0a1520;
+  color: #e2e8f0;
+}
+
+.colorSwatches {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.colorSwatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.colorSwatch:hover {
+  transform: scale(1.15);
+}
+.colorSwatch.selected {
+  border-color: #fff;
+}
+
+.editActions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ── Confirm danger ────────────────────────────────────────────────────────── */
+.confirmBox {
+  background: rgba(248, 113, 113, 0.08);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  color: #fca5a5;
+}
+
+.confirmActions {
+  display: flex;
+  gap: 6px;
+}
+
+.confirmYes {
+  flex: 1;
+  background: rgba(248, 113, 113, 0.15);
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  border-radius: 4px;
+  padding: 5px;
+  color: #f87171;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+}
+.confirmNo {
+  flex: 1;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 5px;
+  color: #64748b;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+}

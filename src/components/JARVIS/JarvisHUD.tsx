@@ -3,7 +3,29 @@ import { useBrainStore } from '../../store/brainStore'
 import { useSpeech } from '../../hooks/useSpeech'
 import { loadAIConfig } from '../../utils/aiService'
 import type { VoiceState } from '../../types'
+import ProjectSwitcher from '../Projects/ProjectSwitcher'
+import SyncPanel from '../Sync/SyncPanel'
+import { useSyncStore } from '../../store/syncStore'
 import styles from './JarvisHUD.module.css'
+
+// ── User Profile Badge ────────────────────────────────────────────────────────
+function UserProfileBadge({ onOpenSync }: { onOpenSync: () => void }) {
+  const user = useSyncStore(s => s.user)
+  if (!user) return null
+  return (
+    <button
+      className={styles.profileBadge}
+      onClick={e => { e.stopPropagation(); onOpenSync() }}
+      title={`${user.name} — ${user.email}\nClick to open Sync settings`}
+    >
+      {user.avatar
+        ? <img src={user.avatar} alt={user.name} className={styles.profileAvatar} />
+        : <span className={styles.profileInitial}>{user.name.charAt(0).toUpperCase()}</span>
+      }
+      <span className={styles.profileName}>{user.name.split(' ')[0]}</span>
+    </button>
+  )
+}
 
 interface JarvisHUDProps {
   onFit?: () => void
@@ -138,6 +160,9 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
   const chatOpen    = useBrainStore(s => s.chatOpen)
   const setChatOpen = useBrainStore(s => s.setChatOpen)
   const { isListening, isSpeaking, startListening, stopListening } = useSpeech()
+
+  const syncStatus = useSyncStore(s => s.status)
+  const [syncOpen, setSyncOpen] = useState(false)
 
   const [, forceUpdate] = useState(0)
   useEffect(() => {
@@ -329,10 +354,35 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
         </div>
       </div>
 
-      {/* ── Below: state label + model badge ─────────────────────────── */}
+      {/* ── Below: glass panel with all controls ──────────────────────── */}
       <div className={styles.below}>
+
+        {/* Row 1: profile (left) + sync badge (right) */}
+        <div className={styles.profileSyncRow}>
+          <UserProfileBadge onOpenSync={() => { if (!isDragging.current) setSyncOpen(true) }} />
+          <button
+            className={styles.syncBadge}
+            onClick={e => { e.stopPropagation(); if (!isDragging.current) setSyncOpen(true) }}
+            title={`Status do sync: ${syncStatus}`}
+          >
+            {syncStatus === 'synced'  && <span style={{ color: '#4ade80' }}>● Sync</span>}
+            {syncStatus === 'syncing' && <span style={{ color: '#38bdf8' }}>↑ Sync…</span>}
+            {syncStatus === 'failed'  && <span style={{ color: '#f87171' }}>✗ Falhou</span>}
+            {syncStatus === 'offline' && <span style={{ color: '#94a3b8' }}>⊘ Offline</span>}
+            {(syncStatus === 'idle' || syncStatus === 'conflict') && <span style={{ color: '#334155' }}>☁</span>}
+          </button>
+        </div>
+
+        {/* Row 2: project switcher full width */}
+        <div className={styles.projectRow}>
+          <ProjectSwitcher />
+        </div>
+
+        <div className={styles.belowDivider} />
+
+        {/* Row 3: state dot + label */}
         <div className={styles.stateRow}>
-          <span className={styles.stateDot} style={{ background: theme.dot, boxShadow: `0 0 6px ${theme.dot}` }} />
+          <span className={styles.stateDot} style={{ background: theme.dot, boxShadow: `0 0 5px ${theme.dot}` }} />
           <span
             className={styles.stateLabel}
             style={{
@@ -345,21 +395,23 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
         </div>
 
         {theme.subLabel && (
-          <div className={styles.subLabel} style={{ fontSize: `${Math.round(11 * scale)}px` }}>
+          <div className={styles.subLabel} style={{ fontSize: `${Math.round(10 * scale)}px` }}>
             {theme.subLabel}
           </div>
         )}
 
+        {/* Row 4: AI model badge */}
         <button
           className={styles.agentBadge}
           onClick={e => { e.stopPropagation(); if (!isDragging.current) setChatOpen(!chatOpen) }}
           title="Abrir chat / trocar agente"
         >
           <span className={styles.agentDiamond}>◆</span>
-          <span className={styles.agentName} style={{ fontSize: `${Math.round(11 * scale)}px` }}>
+          <span className={styles.agentName} style={{ fontSize: `${Math.round(10 * scale)}px` }}>
             {modelLabel}
           </span>
         </button>
+
       </div>
 
       {/* ── Resize handle (bottom-right corner) ──────────────────────── */}
@@ -372,6 +424,8 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
       {!('speechSynthesis' in window) && (
         <div className={styles.unsupported}>Voz não suportada neste navegador</div>
       )}
+
+      <SyncPanel open={syncOpen} onClose={() => setSyncOpen(false)} />
     </div>
   )
 }

@@ -12,12 +12,33 @@ export type NodeCategory =
   | 'Feature'      // funcionalidades extraídas do código
   | 'Endpoint'     // rotas / endpoints de API
 
+export type ProjectType =
+  | 'software' | 'qa' | 'product' | 'marketing'
+  | 'research' | 'engineering' | 'design'
+  | 'operations' | 'personal' | 'custom'
+
+export interface JarvisProject {
+  id: string
+  name: string
+  description?: string
+  type: ProjectType
+  subtype?: string
+  status: 'active' | 'archived'
+  color: string           // hex color for graph tinting
+  nodeCount?: number      // cached, updated on sync
+  linkCount?: number
+  createdAt: number
+  updatedAt: number
+}
+
 export interface BrainNode {
   id: string
   label: string
   category: NodeCategory
+  projectId?: string      // optional — backward compat with nodes that have no projectId
   content?: string
   tags?: string[]
+  images?: string[]   // data URLs stored per-node
   createdAt?: number
   updatedAt?: number
   // injected by force-graph
@@ -165,6 +186,22 @@ export interface ChatSession {
   createdAt: number
   updatedAt: number
   messages: JarvisMessage[]
+}
+
+export interface ProjectSnapshot {
+  id: string
+  projectId: string
+  createdAt: number
+  label: string
+  source: 'auto' | 'manual'
+  nodeCount: number
+  linkCount: number
+  content: {
+    nodes: BrainNode[]
+    links: BrainLink[]
+    sessions: ChatSession[]
+    kanbanColumns: KanbanColumn[]
+  }
 }
 
 export type VoiceState = 'idle' | 'listening' | 'thinking' | 'speaking'

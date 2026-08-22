@@ -29,14 +29,14 @@ export default function BottomBar() {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKey}
-          placeholder='Ask · "remind me..." · "good morning" · "show me..."  ·'
+          placeholder='Pergunte · "me lembre de..." · "bom dia" · "mostre..."  ·'
         />
       </div>
 
       {/* Action icons */}
       <div className={styles.actions}>
         {/* Pencil — write/note */}
-        <button className={styles.action} title="Write note" onClick={() => {
+        <button className={styles.action} title="Registrar nota" onClick={() => {
           window.dispatchEvent(new CustomEvent('jarvis:input', { detail: 'quero registrar uma nota' }))
         }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -46,7 +46,7 @@ export default function BottomBar() {
         </button>
 
         {/* Monitor — display */}
-        <button className={styles.action} title="Graph view">
+        <button className={styles.action} title="Visualização do grafo">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="2" y="3" width="20" height="14" rx="2"/>
             <path d="M8 21h8M12 17v4"/>
@@ -54,7 +54,7 @@ export default function BottomBar() {
         </button>
 
         {/* Bell — reminder */}
-        <button className={styles.action} title="Reminders">
+        <button className={styles.action} title="Lembretes">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
@@ -62,7 +62,7 @@ export default function BottomBar() {
         </button>
 
         {/* Lightbulb — ideas */}
-        <button className={styles.action} title="Ideas" onClick={() => {
+        <button className={styles.action} title="Ideias" onClick={() => {
           window.dispatchEvent(new CustomEvent('jarvis:input', { detail: 'quais são os principais hubs do meu grafo?' }))
         }}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -74,7 +74,7 @@ export default function BottomBar() {
         {/* Mic — voice */}
         <button
           className={`${styles.action} ${isListening ? styles.actionActive : ''} ${isSpeaking ? styles.actionSpeaking : ''}`}
-          title={isListening ? 'Stop listening' : isSpeaking ? 'Speaking...' : 'Voice command'}
+          title={isListening ? 'Parar de ouvir' : isSpeaking ? 'Falando...' : 'Comando de voz'}
           onClick={() => {
             if (!supported) return
             isListening ? stopListening() : startListening()
@@ -97,7 +97,7 @@ export default function BottomBar() {
       {voiceState !== 'idle' && (
         <div className={styles.voiceIndicator}>
           <span className={`${styles.voiceDot} ${styles[voiceState]}`} />
-          <span>{voiceState === 'listening' ? 'Listening...' : voiceState === 'thinking' ? 'Thinking...' : 'Speaking...'}</span>
+          <span>{voiceState === 'listening' ? 'Ouvindo...' : voiceState === 'thinking' ? 'Pensando...' : 'Falando...'}</span>
         </div>
       )}
     </div>

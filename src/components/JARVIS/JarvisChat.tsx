@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import { useBrainStore } from '../../store/brainStore'
 import { isAIConfigured } from '../../utils/aiService'
 import { unlockXttsAudio } from '../../utils/xttsService'
 import styles from './JarvisChat.module.css'
 import type { JarvisMessage } from '../../types'
+
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
@@ -33,6 +35,171 @@ function groupByDate(msgs: JarvisMessage[]) {
   return groups
 }
 
+// ── Markdown-like renderer ──────────────────────────────────────────────────
+
+function renderInline(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = []
+  let key = 0
+  const combined = /(\*\*(.+?)\*\*)|(`([^`]+)`)|(https?:\/\/[^\s<>"')]+)/g
+  let lastIndex = 0
+  let match: RegExpExecArray | null
+
+  combined.lastIndex = 0
+  while ((match = combined.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index))
+    }
+    if (match[1]) {
+      parts.push(<strong key={key++}>{match[2]}</strong>)
+    } else if (match[3]) {
+      parts.push(<code key={key++} className={styles.inlineCode}>{match[4]}</code>)
+    } else if (match[5]) {
+      parts.push(
+        <a key={key++} href={match[5]} target="_blank" rel="noopener noreferrer" className={styles.msgLink}>
+          {match[5]}
+        </a>
+      )
+    }
+    lastIndex = combined.lastIndex
+  }
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex))
+  }
+  return parts
+}
+
+function renderMessage(text: string): React.ReactNode {
+  const lines = text.split('\n')
+  const nodes: React.ReactNode[] = []
+  let key = 0
+
+  for (const line of lines) {
+    if (/^- (.+)/.test(line)) {
+      const content = line.replace(/^- /, '')
+      nodes.push(
+        <div key={key++} className={styles.bulletItem}>
+          <span className={styles.bulletDot}>•</span>
+          <span>{renderInline(content)}</span>
+        </div>
+      )
+    } else if (/^\d+\. (.+)/.test(line)) {
+      const m = line.match(/^(\d+)\. (.+)/)!
+      nodes.push(
+        <div key={key++} className={styles.numberedItem}>
+          <span className={styles.numberedDot}>{m[1]}.</span>
+          <span>{renderInline(m[2])}</span>
+        </div>
+      )
+    } else if (line.trim() === '') {
+      nodes.push(<div key={key++} className={styles.msgSpacer} />)
+    } else {
+      nodes.push(<div key={key++}>{renderInline(line)}</div>)
+    }
+  }
+
+  return <>{nodes}</>
+}
+
+// ── Thinking text cycling ────────────────────────────────────────────────────
+
+const THINKING_TEXTS = ['Consultando grafo…', 'Processando…', 'Formulando resposta…']
+
+function ThinkingBubble() {
+  const [idx, setIdx] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setIdx(i => (i + 1) % THINKING_TEXTS.length), 1500)
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <div className={`${styles.bubble} ${styles.thinking}`}>
+      <div className={styles.thinkingDots}>
+        <span /><span /><span />
+      </div>
+      <div className={styles.thinkingText}>{THINKING_TEXTS[idx]}</div>
+    </div>
+  )
+}
+
+// ── Quick chips ──────────────────────────────────────────────────────────────
+
+const QUICK_CHIPS = [
+  'Status do projeto',
+  'Resumir grafo',
+  'Criar atividade',
+  'Analisar saúde',
+  'Mostrar hubs',
+  'Quais decisões foram tomadas?',
+]
+
+// ── Message bubble with actions ──────────────────────────────────────────────
+
+function JarvisBubble({
+  msg,
+  prevUserText,
+}: {
+  msg: JarvisMessage
+  prevUserText?: string
+}) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(msg.text).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800)
+    })
+  }, [msg.text])
+
+  const handleRetry = useCallback(() => {
+    if (!prevUserText) return
+    unlockXttsAudio()
+    window.dispatchEvent(new CustomEvent('jarvis:input', { detail: prevUserText }))
+  }, [prevUserText])
+
+  return (
+    <div className={styles.bubbleWrap}>
+      <div className={`${styles.bubble} ${styles.jarvisBubble}`}>
+        <div className={styles.msgContent}>{renderMessage(msg.text)}</div>
+        <div className={styles.msgActions}>
+          <button
+            className={`${styles.copyBtn} ${copied ? styles.copyBtnActive : ''}`}
+            onClick={handleCopy}
+            title={copied ? 'Copiado!' : 'Copiar mensagem'}
+          >
+            {copied ? (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="12" height="12">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            )}
+            {copied && <span className={styles.copyTooltip}>Copiado!</span>}
+          </button>
+          {prevUserText && (
+            <button
+              className={styles.copyBtn}
+              onClick={handleRetry}
+              title="Executar novamente"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+                <polyline points="1 4 1 10 7 10" />
+                <path d="M3.51 15a9 9 0 1 0 .49-3.9" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+      <div className={styles.msgTime}>{formatTime(msg.timestamp)}</div>
+    </div>
+  )
+}
+
+// ── Main component ───────────────────────────────────────────────────────────
+
 export default function JarvisChat() {
   const chatOpen        = useBrainStore(s => s.chatOpen)
   const chatHistory     = useBrainStore(s => s.chatHistory)
@@ -44,11 +211,12 @@ export default function JarvisChat() {
   const removeSession   = useBrainStore(s => s.removeSession)
   const voiceState      = useBrainStore(s => s.voiceState)
 
-  const [input, setInput]           = useState('')
-  const [loading, setLoading]       = useState(false)
+  const [input, setInput]               = useState('')
+  const [loading, setLoading]           = useState(false)
   const [aiConfigured, setAiConfigured] = useState(isAIConfigured())
   const [showSessions, setShowSessions] = useState(false)
-  const bottomRef  = useRef<HTMLDivElement>(null)
+  const [inputFocused, setInputFocused] = useState(false)
+  const bottomRef   = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -73,20 +241,27 @@ export default function JarvisChat() {
     el.style.height = `${Math.min(el.scrollHeight, 100)}px`
   }, [input])
 
-  const sendText = () => {
-    const text = input.trim()
-    if (!text || loading) return
+  const sendText = (text?: string) => {
+    const t = (text ?? input).trim()
+    if (!t || loading) return
     unlockXttsAudio()
     setInput('')
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto'
     }
-    window.dispatchEvent(new CustomEvent('jarvis:input', { detail: text }))
+    window.dispatchEvent(new CustomEvent('jarvis:input', { detail: t }))
   }
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendText() }
   }
+
+  const handleChip = (chip: string) => {
+    unlockXttsAudio()
+    window.dispatchEvent(new CustomEvent('jarvis:input', { detail: chip }))
+  }
+
+  const showChips = chatHistory.length === 0 || inputFocused
 
   if (!chatOpen) return null
 
@@ -166,32 +341,57 @@ export default function JarvisChat() {
           groups.map(group => (
             <div key={group.date}>
               <div className={styles.dateSep}>{group.date}</div>
-              {group.msgs.map((msg: JarvisMessage) => (
-                <div
-                  key={msg.id}
-                  className={`${styles.msg} ${msg.role === 'jarvis' ? styles.jarvisMsg : styles.userMsg}`}
-                >
-                  {msg.role === 'jarvis' && <span className={styles.avatar}>J</span>}
-                  <div className={styles.bubbleWrap}>
-                    <div className={styles.bubble}>{msg.text}</div>
-                    <div className={styles.msgTime}>{formatTime(msg.timestamp)}</div>
+              {group.msgs.map((msg: JarvisMessage) => {
+                // Find the previous user message to enable "retry"
+                const globalIdx = chatHistory.indexOf(msg)
+                const prevUser = globalIdx > 0
+                  ? chatHistory.slice(0, globalIdx).reverse().find(m => m.role === 'user')
+                  : undefined
+
+                return (
+                  <div
+                    key={msg.id}
+                    className={`${styles.msg} ${msg.role === 'jarvis' ? styles.jarvisMsg : styles.userMsg}`}
+                  >
+                    {msg.role === 'jarvis' && <span className={styles.avatar}>J</span>}
+                    {msg.role === 'jarvis' ? (
+                      <JarvisBubble msg={msg} prevUserText={prevUser?.text} />
+                    ) : (
+                      <div className={styles.bubbleWrap}>
+                        <div className={`${styles.bubble} ${styles.userBubble}`}>{msg.text}</div>
+                        <div className={styles.msgTime}>{formatTime(msg.timestamp)}</div>
+                      </div>
+                    )}
+                    {msg.role === 'user' && <span className={styles.userAvatar}>Eu</span>}
                   </div>
-                  {msg.role === 'user' && <span className={styles.userAvatar}>Eu</span>}
-                </div>
-              ))}
+                )
+              })}
             </div>
           ))
         )}
         {loading && (
           <div className={`${styles.msg} ${styles.jarvisMsg}`}>
             <span className={styles.avatar}>J</span>
-            <div className={`${styles.bubble} ${styles.thinking}`}>
-              <span /><span /><span />
-            </div>
+            <ThinkingBubble />
           </div>
         )}
         <div ref={bottomRef} />
       </div>
+
+      {/* ── Quick chips ───────────────────────────────────────────────────── */}
+      {showChips && !loading && (
+        <div className={styles.quickChips}>
+          {QUICK_CHIPS.map(chip => (
+            <button
+              key={chip}
+              className={styles.quickChip}
+              onClick={() => handleChip(chip)}
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* ── Input ────────────────────────────────────────────────────────── */}
       <div className={styles.inputRow}>
@@ -201,12 +401,14 @@ export default function JarvisChat() {
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKey}
+          onFocus={() => setInputFocused(true)}
+          onBlur={() => setTimeout(() => setInputFocused(false), 150)}
           placeholder={aiConfigured ? 'Pergunte ao JARVIS... (Enter para enviar)' : 'Digite um comando...'}
           disabled={loading}
           rows={1}
           autoFocus
         />
-        <button className={styles.send} onClick={sendText} disabled={loading || !input.trim()} title="Enviar">
+        <button className={styles.send} onClick={() => sendText()} disabled={loading || !input.trim()} title="Enviar">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <line x1="22" y1="2" x2="11" y2="13" />
             <polygon points="22 2 15 22 11 13 2 9 22 2" />

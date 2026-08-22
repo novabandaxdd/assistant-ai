@@ -111,11 +111,37 @@ Ações disponíveis:
   Ex: "desconecte Marina de Alpha" → GRAPH_ACTION:DISCONNECT_NODES:Marina|Projeto Alpha
 - GRAPH_ACTION:SELECT_NODE:<label>
   Ex: "mostre o nó Marina" → GRAPH_ACTION:SELECT_NODE:Marina
-- GRAPH_ACTION:CREATE_ACTIVITY:<título>|<projeto_opcional>
-  Ex: "crie a atividade revisar API para Alpha" → GRAPH_ACTION:CREATE_ACTIVITY:Revisar API|Projeto Alpha
+- GRAPH_ACTION:CREATE_ACTIVITY:<título>|<projeto_opcional>|<descrição_opcional>|<prioridade_opcional>|<coluna_opcional>
+  Prioridade válida: low, medium, high
+  Coluna válida: backlog, in_progress, in_review, done
+  Ex simples: "crie a atividade revisar API para Alpha" → GRAPH_ACTION:CREATE_ACTIVITY:Revisar API|Projeto Alpha
+  Ex completo: "crie tarefa urgente de corrigir autenticação em Alpha em andamento" →
+    GRAPH_ACTION:CREATE_ACTIVITY:Corrigir autenticação|Projeto Alpha|Corrigir bug crítico no módulo de auth. Verificar refresh token e expiração de sessão.|high|in_progress
+  IMPORTANTE: Ao criar uma atividade, use TODO o contexto disponível no grafo para preencher a descrição com detalhes reais
+  do projeto — módulos relacionados, stack técnico, decisões relevantes, quem é o responsável, critérios de aceite prováveis.
+  Nunca crie cards vazios se houver contexto disponível.
 - GRAPH_ACTION:MOVE_ACTIVITY:<atividade>|<coluna>
   Colunas válidas: backlog, in_progress, in_review, done
   Ex: "mova Pagamentos para revisão" → GRAPH_ACTION:MOVE_ACTIVITY:Módulo de Pagamentos|in_review
+- GRAPH_ACTION:SET_TAGS:<label>|<tag1>,<tag2>,<tag3>
+  Substitui TODAS as tags do nó pelos valores fornecidos.
+  Ex: "defina as tags de Marina como backend, devops" → GRAPH_ACTION:SET_TAGS:Marina|backend,devops
+- GRAPH_ACTION:ADD_TAG:<label>|<tag>
+  Adiciona UMA tag ao nó sem remover as existentes.
+  Ex: "adicione a tag urgente ao nó Alpha" → GRAPH_ACTION:ADD_TAG:Alpha|urgente
+- GRAPH_ACTION:BATCH_CREATE:<json_array>
+  Cria múltiplos nós de uma vez. JSON format: [{"label":"X","category":"Y","content":"Z","tags":["a","b"]},...]
+  Ex: "crie três tecnologias: Redis, Kafka e Elasticsearch" →
+    GRAPH_ACTION:BATCH_CREATE:[{"label":"Redis","category":"Tech","content":"Cache e filas","tags":["cache"]},{"label":"Kafka","category":"Tech","content":"Streaming de eventos","tags":["messaging"]},{"label":"Elasticsearch","category":"Tech","content":"Busca e indexação","tags":["search"]}]
+- GRAPH_ACTION:SUMMARIZE_NODE:<label>
+  Dispara enriquecimento de conteúdo do nó via IA, usando o contexto do grafo.
+  Ex: "enriqueça o nó Módulo de Pagamentos" → GRAPH_ACTION:SUMMARIZE_NODE:Módulo de Pagamentos
+- GRAPH_ACTION:SET_PROJECT:<node_label>|<project_label>
+  Associa um nó a um projeto (define projectId).
+  Ex: "associe o nó Redis ao projeto Alpha" → GRAPH_ACTION:SET_PROJECT:Redis|Projeto Alpha
+- GRAPH_ACTION:ANALYZE_GRAPH
+  Dispara uma análise completa do grafo: saúde, lacunas, oportunidades e recomendações.
+  Ex: "analise meu grafo" → GRAPH_ACTION:ANALYZE_GRAPH
 
 Se o usuário pedir para trocar de agente, inclua: AGENT_SWITCH:<provider>:<model>
 Agentes disponíveis: roo/global/anthropic.claude-sonnet-4-6, claude/claude-opus-4-5, openai/gpt-4o, roo/global/gpt-5.1-chat, roo/global/gemini-3-flash-preview, local/local-nlp
@@ -149,25 +175,53 @@ export function isAIConfigured(): boolean {
 }
 
 // ── Knowledge context builder
+export interface KnowledgeNode {
+  label: string
+  category: string
+  content?: string
+  tags?: string[]
+}
+
 export interface KnowledgeContext {
-  nodeCount:   number
-  linkCount:   number
-  topNodes:    Array<{ label: string; category: string; content?: string }>
-  recentNodes: Array<{ label: string; category: string; content?: string }>
+  nodeCount:          number
+  linkCount:          number
+  topNodes:           KnowledgeNode[]
+  recentNodes:        KnowledgeNode[]
+  activeProjectName?: string   // label of the project currently being viewed
 }
 
 export function buildKnowledgeContext(ctx: KnowledgeContext): string {
-  const top = ctx.topNodes.slice(0, 10)
-    .map(n => `- [${n.category}] ${n.label}${n.content ? ': ' + n.content.slice(0, 150) : ''}`)
-    .join('\n')
-  const recent = ctx.recentNodes.slice(0, 5)
+  // Group ALL nodes by category
+  const allNodes = ctx.topNodes
+  const byCategory: Record<string, KnowledgeNode[]> = {}
+  for (const n of allNodes) {
+    ;(byCategory[n.category] ??= []).push(n)
+  }
+
+  const categoryBlocks = Object.entries(byCategory)
+    .map(([cat, nodes]) => {
+      const lines = nodes.map(n => {
+        const content = n.content ? ': ' + n.content.slice(0, 300) : ''
+        const tags = n.tags && n.tags.length ? ` [${n.tags.join(', ')}]` : ''
+        return `  - ${n.label}${content}${tags}`
+      }).join('\n')
+      return `[${cat}]\n${lines}`
+    })
+    .join('\n\n')
+
+  const recent = ctx.recentNodes.slice(0, 10)
     .map(n => `- [${n.category}] ${n.label}`)
     .join('\n')
-  return `KNOWLEDGE GRAPH STATE:
-Total nodes: ${ctx.nodeCount} | Total links: ${ctx.linkCount}
 
-Top connected nodes:
-${top}
+  const projectLine = ctx.activeProjectName
+    ? `\nActive project filter: ${ctx.activeProjectName}`
+    : ''
+
+  return `KNOWLEDGE GRAPH STATE:
+Total nodes: ${ctx.nodeCount} | Total links: ${ctx.linkCount}${projectLine}
+
+ALL NODES BY CATEGORY:
+${categoryBlocks}
 
 Recently updated:
 ${recent}
@@ -253,7 +307,7 @@ async function callClaude(
     },
     body: JSON.stringify({
       model:      cfg.model ?? DEFAULT_MODELS.claude,
-      max_tokens: cfg.maxTokens ?? 1024,
+      max_tokens: cfg.maxTokens ?? 4096,
       system:     systemPrompt,
       messages:   claudeMessages,
     }),
@@ -287,7 +341,7 @@ async function callOpenAI(
     },
     body: JSON.stringify({
       model:      cfg.model ?? DEFAULT_MODELS.openai,
-      max_tokens: cfg.maxTokens ?? 1024,
+      max_tokens: cfg.maxTokens ?? 2048,
       messages:   buildMessages(systemPrompt, userMessage, history),
     }),
   })

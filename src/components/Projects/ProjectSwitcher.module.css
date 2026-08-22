@@ -1,0 +1,265 @@
+/* ── ProjectSwitcher — JARVIS dark aesthetic ─────────────────────────────── */
+
+.root {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  z-index: 220;
+}
+
+/* ── Trigger button ───────────────────────────────────────────────────────── */
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 20, 30, 0.75);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 6px;
+  padding: 4px 10px 4px 8px;
+  cursor: pointer;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  transition: border-color 0.2s, background 0.2s;
+  white-space: nowrap;
+  max-width: 180px;
+}
+
+.trigger:hover {
+  border-color: rgba(0, 229, 255, 0.6);
+  background: rgba(0, 30, 45, 0.9);
+}
+
+.triggerName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.caret {
+  font-size: 8px;
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+/* ── Color dot ────────────────────────────────────────────────────────────── */
+.colorDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Dropdown panel ───────────────────────────────────────────────────────── */
+.dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 200px;
+  background: rgba(6, 18, 28, 0.97);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* ── Project list ─────────────────────────────────────────────────────────── */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-bottom: 4px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  padding: 6px 8px;
+  cursor: pointer;
+  color: #cbd5e1;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+  width: 100%;
+}
+
+.item:hover {
+  background: rgba(0, 229, 255, 0.08);
+  border-color: rgba(0, 229, 255, 0.2);
+  color: #e2e8f0;
+}
+
+.item.active {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: rgba(0, 229, 255, 0.35);
+  color: #00e5ff;
+}
+
+.itemName {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.itemType {
+  font-size: 9px;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+/* ── New project button ───────────────────────────────────────────────────── */
+.newBtn {
+  background: transparent;
+  border: 1px dashed rgba(0, 229, 255, 0.25);
+  border-radius: 5px;
+  padding: 5px 8px;
+  cursor: pointer;
+  color: rgba(0, 229, 255, 0.6);
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  text-align: left;
+  letter-spacing: 0.04em;
+  transition: border-color 0.2s, color 0.2s;
+  width: 100%;
+}
+
+.newBtn:hover {
+  border-color: rgba(0, 229, 255, 0.55);
+  color: #00e5ff;
+}
+
+/* ── Dashboard button ─────────────────────────────────────────────────────── */
+.dashBtn {
+  background: transparent;
+  border: 1px dashed rgba(0, 229, 255, 0.2);
+  border-radius: 5px;
+  padding: 5px 8px;
+  cursor: pointer;
+  color: rgba(100, 200, 255, 0.55);
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  text-align: left;
+  letter-spacing: 0.04em;
+  transition: border-color 0.2s, color 0.2s;
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.dashBtn:hover {
+  border-color: rgba(0, 229, 255, 0.5);
+  color: #00e5ff;
+}
+
+/* ── Import Context button ────────────────────────────────────────────────── */
+.importBtn {
+  background: transparent;
+  border: 1px dashed rgba(180, 130, 255, 0.25);
+  border-radius: 5px;
+  padding: 5px 8px;
+  cursor: pointer;
+  color: rgba(180, 130, 255, 0.65);
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  text-align: left;
+  letter-spacing: 0.04em;
+  transition: border-color 0.2s, color 0.2s;
+  width: 100%;
+  margin-top: 3px;
+}
+
+.importBtn:hover {
+  border-color: rgba(180, 130, 255, 0.55);
+  color: #c084fc;
+}
+
+/* ── Inline create form ───────────────────────────────────────────────────── */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(0, 229, 255, 0.15);
+  margin-top: 2px;
+}
+
+.input,
+.select {
+  background: rgba(0, 20, 30, 0.9);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 4px;
+  padding: 5px 8px;
+  color: #e2e8f0;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.input:focus,
+.select:focus {
+  border-color: rgba(0, 229, 255, 0.7);
+}
+
+.select option {
+  background: #0a1520;
+  color: #e2e8f0;
+}
+
+.formActions {
+  display: flex;
+  gap: 6px;
+}
+
+.createBtn,
+.cancelBtn {
+  flex: 1;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.createBtn {
+  background: rgba(0, 229, 255, 0.15);
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  color: #00e5ff;
+}
+
+.createBtn:hover:not(:disabled) {
+  background: rgba(0, 229, 255, 0.25);
+}
+
+.createBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #64748b;
+}
+
+.cancelBtn:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #94a3b8;
+}

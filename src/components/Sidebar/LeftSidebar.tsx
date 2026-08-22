@@ -136,13 +136,13 @@ export default function LeftSidebar() {
     reader.onload = async (ev) => {
       try {
         const data = JSON.parse(ev.target?.result as string) as { nodes: BrainNode[]; links: BrainLink[] }
-        if (!Array.isArray(data.nodes) || !Array.isArray(data.links)) { alert('Invalid brain file.'); return }
-        if (!confirm(`Importar ${data.nodes.length} nodes e ${data.links.length} links? Isso substituirá o brain atual.`)) return
+        if (!Array.isArray(data.nodes) || !Array.isArray(data.links)) { alert('Arquivo de brain inválido.'); return }
+        if (!confirm(`Importar ${data.nodes.length} nós e ${data.links.length} links? Isso substituirá o brain atual.`)) return
         await clearDB()
         for (const node of data.nodes) await saveNode(node)
         for (const link of data.links) await saveLink(link)
         useBrainStore.setState({ nodes: data.nodes, links: data.links })
-      } catch { alert('Falha ao ler arquivo.') }
+      } catch { alert('Falha ao ler o arquivo.') }
     }
     reader.readAsText(file)
     e.target.value = ''
@@ -164,18 +164,18 @@ export default function LeftSidebar() {
           <div className={styles.wsMeta}>{nodes.length} nodes · {links.length} links</div>
         </div>
         <div className={styles.wsActions}>
-          <button className={styles.wsBtn} onClick={handleExport} title="Exportar JSON">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
-              <path d="M8 2v8M5 7l3 3 3-3M2 12h12" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Export
-          </button>
-          <button className={styles.wsBtn} onClick={() => fileInputRef.current?.click()} title="Importar JSON">
-            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
-              <path d="M8 11V3M5 6l3-3 3 3M2 12h12" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-            Import
-          </button>
+            <button className={styles.wsBtn} onClick={handleExport} title="Exportar JSON">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
+                <path d="M8 2v8M5 7l3 3 3-3M2 12h12" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Exportar
+            </button>
+            <button className={styles.wsBtn} onClick={() => fileInputRef.current?.click()} title="Importar JSON">
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
+                <path d="M8 11V3M5 6l3-3 3 3M2 12h12" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              Importar
+            </button>
           <input ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
         </div>
       </div>
@@ -464,8 +464,9 @@ export default function LeftSidebar() {
 
       {/* ── Controls hint ────────────────────────────────────────────── */}
       <div className={styles.controlsHint}>
-        <div className={styles.hintRow}><kbd>drag</kbd> orbit &nbsp;·&nbsp; <kbd>scroll</kbd> zoom &nbsp;·&nbsp; <kbd>click</kbd> focus</div>
-        <div className={styles.hintRow}><kbd>shift</kbd> path &nbsp;·&nbsp; <kbd>L</kbd> isolar &nbsp;·&nbsp; <kbd>esc</kbd> limpar</div>
+        <div className={styles.hintRow}><kbd>arrastar</kbd> orbitar &nbsp;·&nbsp; <kbd>scroll</kbd> zoom &nbsp;·&nbsp; <kbd>click</kbd> focar</div>
+        <div className={styles.hintRow}><kbd>shift</kbd> caminho &nbsp;·&nbsp; <kbd>L</kbd> isolar &nbsp;·&nbsp; <kbd>esc</kbd> limpar</div>
+        <div className={styles.hintRow}><kbd>Ctrl+Z</kbd> desfazer &nbsp;·&nbsp; <kbd>Ctrl+Shift+Z</kbd> refazer</div>
       </div>
 
     </aside>
