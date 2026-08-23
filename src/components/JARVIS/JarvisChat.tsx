@@ -90,26 +90,38 @@ function renderMessage(text: string): React.ReactNode {
 
 async function generateImageWithGemini(prompt: string): Promise<string | null> {
   const cfg = loadAIConfig()
-  if (!cfg || cfg.provider !== 'gemini') return null
+  if (!cfg) return null
 
-  const apiKey = await vaultGet('gemini')
+  // Works with any Gemini key — uses gemini-2.0-flash-preview-image-generation
+  // which is available on the free tier
+  const apiKey = await vaultGet(cfg.provider === 'gemini' ? 'gemini' : cfg.provider)
   if (!apiKey) return null
 
+  // Use generateContent with responseModalities: ["IMAGE", "TEXT"]
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        instances: [{ prompt }],
-        parameters: { sampleCount: 1 },
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
       }),
     }
   )
-  if (!res.ok) return null
-  const data = await res.json() as { predictions?: Array<{ bytesBase64Encoded?: string }> }
-  const b64 = data.predictions?.[0]?.bytesBase64Encoded
-  return b64 ? `data:image/png;base64,${b64}` : null
+  if (!res.ok) {
+    const err = await res.text().catch(() => '')
+    console.warn('[JARVIS Image]', res.status, err)
+    return null
+  }
+  const data = await res.json() as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ inlineData?: { mimeType: string; data: string } }> }
+    }>
+  }
+  const part = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)
+  if (!part?.inlineData) return null
+  return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`
 }
 
 // ── Thinking text cycling ─────────────────────────────────────────────────────
@@ -292,10 +304,11 @@ export default function JarvisChat() {
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
-    // Detect image generation intent
-    const isImageRequest = /^(ger[ae]|cri[ae]|fa[çz]a?|draw|paint|image|imagem|foto|ilustr|desenh)/i.test(t)
+    // Detect image generation intent — strip "jarvis," prefix before testing
+    const stripped = t.replace(/^(jarvis[,.]?\s*)+/i, '').trim()
+    const isImageRequest = /^(ger[ae]|cri[ae]|fa[çz]a?|draw|paint|image|imagem|foto|ilustr|desenh|mostre?|exib)/i.test(stripped)
     if (isImageRequest && aiConfigured) {
-      void handleImageGenerate(t)
+      void handleImageGenerate(stripped)
       return
     }
 
