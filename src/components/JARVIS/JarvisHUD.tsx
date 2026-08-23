@@ -128,7 +128,22 @@ const STORAGE_KEY = 'jarvis-hud-layout'
 
 interface HUDLayout { x: number; y: number; size: number }
 
+/** True when the initial render is on a small screen (≤ 640px logical pixels) */
+function isMobileScreen(): boolean {
+  return window.innerWidth <= 640
+}
+
+const MOBILE_SIZE = 150  // px — fixed size on mobile
+
 function loadLayout(): HUDLayout {
+  if (isMobileScreen()) {
+    // Mobile: fixed bottom-right, no persistence of position
+    return {
+      x:    window.innerWidth  - MOBILE_SIZE - 12,
+      y:    window.innerHeight - MOBILE_SIZE - 100,
+      size: MOBILE_SIZE,
+    }
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
@@ -174,6 +189,25 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
 
   void onFit
 
+  // ── Mobile detection (reactive to resize) ────────────────────────────────
+  const [isMobile, setIsMobile] = useState(isMobileScreen)
+  useEffect(() => {
+    const onResize = () => {
+      const mobile = isMobileScreen()
+      setIsMobile(mobile)
+      if (mobile) {
+        // Re-anchor to bottom-right on resize to mobile
+        setLayout({
+          x:    window.innerWidth  - MOBILE_SIZE - 12,
+          y:    window.innerHeight - MOBILE_SIZE - 100,
+          size: MOBILE_SIZE,
+        })
+      }
+    }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   // ── Layout state ─────────────────────────────────────────────────────────
   const [layout, setLayout] = useState<HUDLayout>(loadLayout)
 
@@ -193,6 +227,7 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
   const isDragging = useRef(false)
 
   const onDragStart = useCallback((e: React.PointerEvent) => {
+    if (isMobileScreen()) return  // no drag on mobile
     // Only drag via header strip — not SVG clicks
     if ((e.target as HTMLElement).closest('svg') || (e.target as HTMLElement).closest('button')) return
     e.currentTarget.setPointerCapture(e.pointerId)
@@ -266,8 +301,13 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
 
   return (
     <div
-      className={`${styles.hud} ${styles[voiceState]}`}
-      style={{ left: layout.x, top: layout.y, width: layout.size, cursor: isDragging.current ? 'grabbing' : 'grab' }}
+      className={`${styles.hud} ${styles[voiceState]} ${isMobile ? styles.mobile : ''}`}
+      style={{
+        left:   layout.x,
+        top:    layout.y,
+        width:  layout.size,
+        cursor: isMobile ? 'default' : (isDragging.current ? 'grabbing' : 'grab'),
+      }}
       title={isListening ? 'Clique para parar' : 'Clique para falar com JARVIS'}
       onPointerDown={onDragStart}
       onPointerMove={e => { onDragMove(e); onResizeMove(e) }}
@@ -352,28 +392,32 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
       {/* ── Below: glass panel with all controls ──────────────────────── */}
       <div className={styles.below}>
 
-        {/* Row 1: profile (left) + sync badge (right) */}
-        <div className={styles.profileSyncRow}>
-          <UserProfileBadge onOpenSync={() => { if (!isDragging.current) setSyncOpen(true) }} />
-          <button
-            className={styles.syncBadge}
-            onClick={e => { e.stopPropagation(); if (!isDragging.current) setSyncOpen(true) }}
-            title={`Status do sync: ${syncStatus}`}
-          >
-            {syncStatus === 'synced'  && <span style={{ color: '#4ade80' }}>● Sync</span>}
-            {syncStatus === 'syncing' && <span style={{ color: '#38bdf8' }}>↑ Sync…</span>}
-            {syncStatus === 'failed'  && <span style={{ color: '#f87171' }}>✗ Falhou</span>}
-            {syncStatus === 'offline' && <span style={{ color: '#94a3b8' }}>⊘ Offline</span>}
-            {(syncStatus === 'idle' || syncStatus === 'conflict') && <span style={{ color: '#334155' }}>☁</span>}
-          </button>
-        </div>
+        {/* Row 1: profile (left) + sync badge (right) — hidden on mobile */}
+        {!isMobile && (
+          <div className={styles.profileSyncRow}>
+            <UserProfileBadge onOpenSync={() => { if (!isDragging.current) setSyncOpen(true) }} />
+            <button
+              className={styles.syncBadge}
+              onClick={e => { e.stopPropagation(); if (!isDragging.current) setSyncOpen(true) }}
+              title={`Status do sync: ${syncStatus}`}
+            >
+              {syncStatus === 'synced'  && <span style={{ color: '#4ade80' }}>● Sync</span>}
+              {syncStatus === 'syncing' && <span style={{ color: '#38bdf8' }}>↑ Sync…</span>}
+              {syncStatus === 'failed'  && <span style={{ color: '#f87171' }}>✗ Falhou</span>}
+              {syncStatus === 'offline' && <span style={{ color: '#94a3b8' }}>⊘ Offline</span>}
+              {(syncStatus === 'idle' || syncStatus === 'conflict') && <span style={{ color: '#334155' }}>☁</span>}
+            </button>
+          </div>
+        )}
 
-        {/* Row 2: project switcher full width */}
-        <div className={styles.projectRow}>
-          <ProjectSwitcher />
-        </div>
+        {/* Row 2: project switcher full width — hidden on mobile (too narrow) */}
+        {!isMobile && (
+          <div className={styles.projectRow}>
+            <ProjectSwitcher />
+          </div>
+        )}
 
-        <div className={styles.belowDivider} />
+        {!isMobile && <div className={styles.belowDivider} />}
 
         {/* Row 3: state dot + label */}
         <div className={styles.stateRow}>
@@ -389,21 +433,21 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
           </span>
         </div>
 
-        {theme.subLabel && (
+        {!isMobile && theme.subLabel && (
           <div className={styles.subLabel} style={{ fontSize: `${Math.round(10 * scale)}px` }}>
             {theme.subLabel}
           </div>
         )}
 
-        {/* Row 4: AI model badge */}
+        {/* Row 4: AI model badge — tap opens chat on mobile */}
         <button
           className={styles.agentBadge}
           onClick={e => { e.stopPropagation(); if (!isDragging.current) setChatOpen(!chatOpen) }}
-          title="Abrir chat / trocar agente"
+          title="Abrir chat"
         >
           <span className={styles.agentDiamond}>◆</span>
           <span className={styles.agentName} style={{ fontSize: `${Math.round(10 * scale)}px` }}>
-            {modelLabel}
+            {isMobile ? 'CHAT' : modelLabel}
           </span>
         </button>
 
