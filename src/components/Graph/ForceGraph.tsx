@@ -178,8 +178,9 @@ export default function ForceGraph() {
   const addMessage  = useBrainStore(s => s.addMessage)
   const setChatOpen = useBrainStore(s => s.setChatOpen)
   const getLinks    = useBrainStore(s => s.getLinks)
-  const addNode     = useBrainStore(s => s.addNode)
-  const addLink     = useBrainStore(s => s.addLink)
+  const addNode               = useBrainStore(s => s.addNode)
+  const addLink               = useBrainStore(s => s.addLink)
+  const activeProjectFilterId = useBrainStore(s => s.activeProjectFilterId)
 
   // ── Track Shift key via ref
   useEffect(() => {
@@ -595,6 +596,12 @@ export default function ForceGraph() {
           onClose={() => setContextMenu(null)}
           onCreateNode={async (label, category) => {
             const node = await addNode({ label, category })
+            // Auto-link to active project hub so node is visible under the filter
+            const projectHubId = activeProjectFilterId
+            if (projectHubId && node.id !== projectHubId) {
+              const hub = useBrainStore.getState().nodes.find(n => n.id === projectHubId && n.category === 'Project')
+              if (hub) await addLink(projectHubId, node.id)
+            }
             setContextMenu(null)
             selectNode(node.id)
           }}

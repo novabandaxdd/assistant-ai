@@ -1,7 +1,9 @@
 import { useState, useRef } from 'react'
 import { useBrainStore, CATEGORY_COLORS } from '../../store/brainStore'
 import { saveNode, saveLink, clearDB } from '../../store/db'
+import { useProjectStore } from '../../store/projectStore'
 import type { BrainNode, BrainLink, NodeCategory } from '../../types'
+import ImportContextWizard from '../Projects/ImportContextWizard'
 import styles from './LeftSidebar.module.css'
 
 const ALL_CATEGORIES: NodeCategory[] = [
@@ -55,6 +57,7 @@ export default function LeftSidebar() {
   const [newLabel, setNewLabel]     = useState('')
   const [newCat, setNewCat]         = useState<NodeCategory>('Note')
   const [newContent, setNewContent] = useState('')
+  const [importWizardOpen, setImportWizardOpen] = useState(false)
 
   const [editOpen, setEditOpen]     = useState(false)
   const [editLabel, setEditLabel]   = useState('')
@@ -74,12 +77,14 @@ export default function LeftSidebar() {
   const selectNode    = useBrainStore(s => s.selectNode)
   const setPhysics    = useBrainStore(s => s.setPhysics)
   const addNode       = useBrainStore(s => s.addNode)
+  const addLink       = useBrainStore(s => s.addLink)
   const updateNode    = useBrainStore(s => s.updateNode)
   const removeNode    = useBrainStore(s => s.removeNode)
-  const addLink       = useBrainStore(s => s.addLink)
   const removeLink    = useBrainStore(s => s.removeLink)
   const getNeighbors  = useBrainStore(s => s.getNeighbors)
   const getLinks      = useBrainStore(s => s.getLinks)
+  const activeProjectFilterId = useBrainStore(s => s.activeProjectFilterId)
+  const activeProjectId = useProjectStore(s => s.activeProjectId)
 
   const selectedNode  = useBrainStore(s => selectedNodeId ? s.nodes.find(n => n.id === selectedNodeId) ?? null : null)
   const neighbors     = selectedNodeId ? getNeighbors(selectedNodeId) : []
@@ -150,8 +155,18 @@ export default function LeftSidebar() {
 
   const handleAdd = async () => {
     if (!newLabel.trim()) return
-    await addNode({ label: newLabel.trim(), category: newCat, content: newContent.trim() })
+    const node = await addNode({ label: newLabel.trim(), category: newCat, content: newContent.trim() || undefined })
     setNewLabel(''); setNewContent(''); setAddOpen(false)
+
+    // If project filter is active, auto-link to the project hub so the node
+    // becomes visible (filteredNodes requires connectivity to project hub)
+    const projectHubId = activeProjectFilterId ?? activeProjectId
+    if (projectHubId && node.id !== projectHubId) {
+      const hub = nodes.find(n => n.id === projectHubId && n.category === 'Project')
+      if (hub) await addLink(projectHubId, node.id)
+    }
+
+    selectNode(node.id)
   }
 
   return (
@@ -170,12 +185,13 @@ export default function LeftSidebar() {
               </svg>
               Exportar
             </button>
-            <button className={styles.wsBtn} onClick={() => fileInputRef.current?.click()} title="Importar JSON">
+            <button className={styles.wsBtn} onClick={() => setImportWizardOpen(true)} title="Importar contexto JSON">
               <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" width="13" height="13">
                 <path d="M8 11V3M5 6l3-3 3 3M2 12h12" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
               Importar
             </button>
+          {/* legacy raw import kept as fallback, hidden */}
           <input ref={fileInputRef} type="file" accept=".json" style={{ display: 'none' }} onChange={handleImport} />
         </div>
       </div>
@@ -469,6 +485,12 @@ export default function LeftSidebar() {
         <div className={styles.hintRow}><kbd>Ctrl+Z</kbd> desfazer &nbsp;·&nbsp; <kbd>Ctrl+Shift+Z</kbd> refazer</div>
       </div>
 
+      {importWizardOpen && (
+        <ImportContextWizard
+          open={importWizardOpen}
+          onClose={() => setImportWizardOpen(false)}
+        />
+      )}
     </aside>
   )
 }
