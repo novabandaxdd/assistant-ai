@@ -304,10 +304,13 @@ export default function JarvisChat() {
     setInput('')
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
 
-    // Detect image generation intent — strip "jarvis," prefix before testing
-    const stripped = t.replace(/^(jarvis[,.]?\s*)+/i, '').trim()
-    const isImageRequest = /^(ger[ae]|cri[ae]|fa[çz]a?|draw|paint|image|imagem|foto|ilustr|desenh|mostre?|exib)/i.test(stripped)
-    if (isImageRequest && aiConfigured) {
+    // Detect image generation intent:
+    // Requires BOTH an action verb AND an explicit image/visual keyword in the message.
+    // This prevents "crie uma atividade" or "mostre os projetos" from triggering image gen.
+    const hasImageKeyword = /\b(imagem|image|foto|photo|ilustra[çc]|ilustration|desenho|drawing|picture|render|visual|portrait|wallpaper|artwork|paint)\b/i.test(t)
+    const hasImageVerb    = /\b(ger[ae]r?|cri[ae]r?|fa[çz]er?|draw|paint|gerar?|criar?|produz[ia]r?|make|generate)\b/i.test(t)
+    if (hasImageKeyword && hasImageVerb && aiConfigured) {
+      const stripped = t.replace(/^(jarvis[,.]?\s*)+/i, '').trim()
       void handleImageGenerate(stripped)
       return
     }
