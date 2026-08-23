@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useBrainStore, CATEGORY_COLORS } from '../../store/brainStore'
 import { saveNode, saveLink, clearDB } from '../../store/db'
 import { useProjectStore } from '../../store/projectStore'
@@ -58,6 +58,14 @@ export default function LeftSidebar() {
   const [newCat, setNewCat]         = useState<NodeCategory>('Note')
   const [newContent, setNewContent] = useState('')
   const [importWizardOpen, setImportWizardOpen] = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  // Close on resize to desktop
+  useEffect(() => {
+    const handle = () => { if (window.innerWidth > 640) setMobileOpen(false) }
+    window.addEventListener('resize', handle)
+    return () => window.removeEventListener('resize', handle)
+  }, [])
 
   const [editOpen, setEditOpen]     = useState(false)
   const [editLabel, setEditLabel]   = useState('')
@@ -170,7 +178,28 @@ export default function LeftSidebar() {
   }
 
   return (
-    <aside className={styles.sidebar}>
+    <>
+      {/* Mobile hamburger toggle */}
+      <button
+        className={styles.menuToggle}
+        onClick={() => setMobileOpen(o => !o)}
+        title="Abrir painel"
+        aria-label="Abrir sidebar"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="20" height="20">
+          {mobileOpen
+            ? <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>
+            : <><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></>
+          }
+        </svg>
+      </button>
+
+      {/* Overlay */}
+      {mobileOpen && (
+        <div className={styles.sidebarOverlay} onClick={() => setMobileOpen(false)} />
+      )}
+
+    <aside className={`${styles.sidebar} ${mobileOpen ? styles.open : ''}`}>
 
       {/* ── Workspace header ─────────────────────────────────────────── */}
       <div className={styles.workspaceHeader}>
@@ -492,5 +521,6 @@ export default function LeftSidebar() {
         />
       )}
     </aside>
+    </>
   )
 }

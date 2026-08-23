@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useBrainStore, CATEGORY_COLORS } from '../../store/brainStore'
 import type { NodeCategory } from '../../types'
 import styles from './RightSidebar.module.css'
@@ -24,6 +25,8 @@ const CAT_LABELS: Record<NodeCategory, string> = {
 }
 
 export default function RightSidebar() {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
   const filters          = useBrainStore(s => s.filters)
   const counts           = useBrainStore(s => s.categoryCounts())
   const toggleCategory   = useBrainStore(s => s.toggleCategory)
@@ -54,7 +57,28 @@ export default function RightSidebar() {
   const connectedNodes = nodes.filter(n => connectedNodeIds.has(n.id)).slice(0, 12)
 
   return (
-    <aside className={styles.sidebar}>
+    <>
+      {/* Mobile toggle button */}
+      <button
+        className={styles.filterToggle}
+        onClick={() => setMobileOpen(o => !o)}
+        aria-label="Filtros"
+      >
+        ⚙
+      </button>
+
+      {/* Overlay — closes drawer on tap outside */}
+      {mobileOpen && (
+        <div
+          style={{
+            position: 'fixed', inset: 0, zIndex: 290,
+            background: 'rgba(0,0,0,0.45)',
+          }}
+          onClick={() => setMobileOpen(false)}
+        />
+      )}
+
+    <aside className={`${styles.sidebar} ${mobileOpen ? styles.open : ''}`}>
       {/* ── Selected node panel ──────────────────────────────────────────── */}
       {selectedNode ? (
         <div className={styles.nodePanel}>
@@ -137,5 +161,6 @@ export default function RightSidebar() {
         })}
       </div>
     </aside>
+    </>
   )
 }

@@ -1,4 +1,4 @@
-/* Global reset + base */
+/* ── Global reset ─────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #root {
@@ -11,9 +11,35 @@ body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: #fff;
   -webkit-font-smoothing: antialiased;
+  /* Safe area insets for iPhone notch/home bar */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
 }
 
-/* App container */
+/* ── Layout tokens — override per breakpoint ─────────────────────────────── */
+:root {
+  --sidebar-left-w:  240px;
+  --sidebar-right-w: 160px;
+  --toolbar-h:       52px;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-left-w:  200px;
+    --sidebar-right-w: 0px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --sidebar-left-w:  0px;
+    --sidebar-right-w: 0px;
+  }
+}
+
+/* ── App container ────────────────────────────────────────────────────────── */
 .app {
   position: relative;
   width: 100vw;
@@ -21,7 +47,7 @@ body {
   overflow: hidden;
 }
 
-/* Loading screen */
+/* ── Loading screen ───────────────────────────────────────────────────────── */
 .loading {
   width: 100vw;
   height: 100vh;
@@ -36,11 +62,13 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 14px;
+  padding: 20px;
+  text-align: center;
 }
 
 .loading-ring {
-  width: 72px;
-  height: 72px;
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
   border: 2px solid rgba(0,245,255,0.1);
   border-top-color: #00f5ff;
@@ -52,7 +80,7 @@ body {
 
 .loading-text {
   font-family: 'Orbitron', monospace;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 700;
   color: #00f5ff;
   letter-spacing: 4px;
@@ -65,8 +93,16 @@ body {
   letter-spacing: 1px;
 }
 
-/* Scrollbar global */
+/* ── Scrollbar global ─────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* ── Mobile safe tap targets (minimum 44px) ──────────────────────────────── */
+@media (max-width: 640px) {
+  button, [role="button"] {
+    min-height: 36px;
+    -webkit-tap-highlight-color: transparent;
+  }
+}

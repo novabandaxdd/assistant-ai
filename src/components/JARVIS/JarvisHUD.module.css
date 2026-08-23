@@ -327,3 +327,65 @@
   from { r: 1.5; opacity: 0.4; }
   to   { r: 3.5; opacity: 1.0; }
 }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+/* Tablet: HUD um pouco menor */
+@media (max-width: 1024px) {
+  .stateLabel {
+    font-size: 11px !important;
+    letter-spacing: 1.5px;
+  }
+}
+
+/* Mobile: HUD fixo no canto inferior direito, tamanho reduzido */
+@media (max-width: 640px) {
+  .hud {
+    /* Override inline style positioning on mobile */
+    position: fixed !important;
+    bottom: 90px !important;
+    right: 12px !important;
+    left: auto !important;
+    top: auto !important;
+    width: 120px !important;
+    pointer-events: auto;
+  }
+
+  /* Ring area menor */
+  .ringWrap {
+    width: 120px !important;
+    height: 120px !important;
+  }
+
+  .rings {
+    width: 120px !important;
+    height: 120px !important;
+  }
+
+  /* Below panel mais compacto */
+  .below {
+    padding: 5px 7px 7px;
+    gap: 3px;
+  }
+
+  .stateLabel {
+    font-size: 9px !important;
+    letter-spacing: 1.5px;
+  }
+
+  .subLabel { display: none; }
+
+  .profileName { max-width: 48px; font-size: 8px !important; }
+
+  .agentBadge {
+    padding: 3px 8px 3px 6px;
+  }
+
+  .agentName {
+    font-size: 8px !important;
+    letter-spacing: 0.8px;
+  }
+
+  /* Resize handle — sem sentido no mobile */
+  .resizeHandle { display: none; }
+}

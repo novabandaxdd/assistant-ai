@@ -139,3 +139,58 @@
 }
 
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+/* Tablet: smaller icons */
+@media (max-width: 1024px) {
+  .toolbar {
+    top: 10px;
+    padding: 3px 5px;
+  }
+  .iconBtn { width: 30px; height: 30px; }
+}
+
+/* Mobile: full-width top bar */
+@media (max-width: 640px) {
+  .toolbar {
+    top: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    width: 100%;
+    border-radius: 0;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 6px 12px;
+    justify-content: space-between;
+    gap: 2px;
+  }
+
+  .group {
+    gap: 2px;
+  }
+
+  .iconBtn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .iconBtn svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .viewToggle {
+    height: 36px;
+    padding: 0 10px 0 8px;
+    font-size: 12px;
+  }
+
+  .divider {
+    height: 20px;
+    margin: 0 1px;
+  }
+}

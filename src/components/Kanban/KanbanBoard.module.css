@@ -1,7 +1,7 @@
 /* ── Shell ─────────────────────────────────────────────────────────────────── */
 .boardShell {
   position: absolute;
-  inset: 72px 320px 88px 320px;
+  inset: 52px var(--sidebar-right-w, 160px) 88px var(--sidebar-left-w, 240px);
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -672,29 +672,28 @@
 }
 
 /* ── Responsive ────────────────────────────────────────────────────────────── */
-@media (max-width: 1500px) {
-  .boardShell {
-    inset-left: 280px;
-    inset-right: 280px;
-  }
 
+@media (max-width: 1200px) {
   .board {
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    grid-template-columns: repeat(2, minmax(200px, 1fr));
   }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .boardShell {
-    inset: 72px 16px 88px 16px;
+    inset: 52px 0 80px 200px; /* left sidebar 200px, no right sidebar */
+    padding: 16px;
   }
 
   .boardHeader {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
   }
 
   .boardHeaderRight {
     width: 100%;
+    flex-wrap: wrap;
   }
 
   .board {
@@ -702,26 +701,87 @@
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 640px) {
   .boardShell {
-    top: 64px;
-    bottom: 84px;
-    padding: 12px;
+    inset: 52px 0 80px 0; /* toolbar ocupa topo, sidebars ocultas */
+    padding: 10px;
+    gap: 12px;
+  }
+
+  .boardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .boardHeaderRight {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
   }
 
   .title { font-size: 18px; }
   .subtitle { font-size: 11px; }
 
+  /* Colunas viram scroll horizontal */
   .board {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(4, calc(80vw));
+    overflow-x: auto;
+    overflow-y: hidden;
+    snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 8px;
+    gap: 10px;
+  }
+
+  .column {
+    scroll-snap-align: start;
+    min-height: 300px;
+    max-height: none;
+  }
+
+  .columnBody {
+    max-height: calc(100vh - 260px);
   }
 
   .createButton,
-  .projectSelect {
+  .projectSelect,
+  .swimlaneToggle {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .filterBar {
+    gap: 6px;
+    padding-bottom: 10px;
+  }
+
+  .filterSearch {
+    min-width: 100%;
+  }
+
+  .filterPriorityBtns {
     width: 100%;
+    justify-content: stretch;
+  }
+
+  .filterPriorityBtn {
+    flex: 1;
+    text-align: center;
   }
 
   .fieldRow {
     grid-template-columns: 1fr;
+  }
+
+  .modal {
+    max-height: 90vh;
+    overflow-y: auto;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .modalForm {
+    max-height: calc(90vh - 100px);
   }
 }

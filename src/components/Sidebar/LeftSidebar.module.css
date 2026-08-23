@@ -664,3 +664,71 @@ kbd {
   padding: 0px 4px;
   color: rgba(255, 255, 255, 0.3);
 }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+
+/* Tablet (641–1024px): sidebar mais estreita */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 200px;
+  }
+}
+
+/* Mobile (≤640px): sidebar vira drawer lateral deslizante */
+@media (max-width: 640px) {
+  .sidebar {
+    width: 280px;
+    top: 52px;         /* abaixo da toolbar full-width */
+    transform: translateX(-100%);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 300;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.6);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Overlay escuro atrás do drawer */
+  .sidebarOverlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 299;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  /* Botão hambúrguer para abrir sidebar — fica no canto superior esquerdo da toolbar */
+  .menuToggle {
+    display: flex;
+  }
+
+  .controlsHint { display: none; }
+}
+
+/* Toggle button — oculto em telas grandes */
+.menuToggle {
+  display: none;
+  position: fixed;
+  bottom: 90px;
+  left: 12px;
+  z-index: 350;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(10,14,24,0.95);
+  border: 1px solid rgba(0,229,255,0.3);
+  color: #00e5ff;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  transition: background 0.15s;
+}
+.menuToggle:hover { background: rgba(0,229,255,0.1); }
+
+/* Overlay — oculto por padrão */
+.sidebarOverlay { display: none; }
