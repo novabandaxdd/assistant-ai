@@ -17,7 +17,7 @@ import { useBrainStore } from '../store/brainStore'
 import { processCommand } from '../utils/jarvisNLP'
 import { askAI, buildKnowledgeContext, loadAIConfig, loadAIConfigWithKey, saveAIConfig, isAIConfigured } from '../utils/aiService'
 import type { AIConfig } from '../utils/aiService'
-import { playActivationSound, speakText, unlockAudio } from '../utils/jarvisVoice'
+import { unlockAudio } from '../utils/jarvisVoice'
 import type { KanbanCard, KanbanColumnId, NodeCategory } from '../types'
 
 // ── Knowledge context ─────────────────────────────────────────────────────────
@@ -282,15 +282,10 @@ export function useJarvisEngine() {
   useEffect(() => { addMessageRef.current    = addMessage },    [addMessage])
   useEffect(() => { setChatOpenRef.current   = setChatOpen },   [setChatOpen])
 
-  // ── Stable speak wrapper ──────────────────────────────────────────────────
-  const speak = useRef((text: string) => {
-    cancelSpeakFn.current?.()
-    setVoiceStateRef.current('speaking')
-    const cancel = speakText(text, {
-      onEnd:   () => { setVoiceStateRef.current('idle'); cancelSpeakFn.current = null },
-      onError: () => { setVoiceStateRef.current('idle'); cancelSpeakFn.current = null },
-    })
-    cancelSpeakFn.current = cancel
+  // ── Speak is now a no-op (voice removed — text-only chat) ────────────────
+  const speak = useRef((_text: string) => {
+    // Voice TTS removed — JARVIS is text-only
+    setVoiceStateRef.current('idle')
   })
 
   // ── Unlock AudioContext on first user interaction ─────────────────────────
@@ -342,14 +337,7 @@ export function useJarvisEngine() {
       const result = await processMessage(heard, history)
       addMessageRef.current({ role: 'jarvis', text: result.response })
 
-      // Play activation sound for greetings — only when NOT using XTTS
-      // (XTTS already produces the full cloned voice; MP3 would overlap)
-      const isGreeting = /^(ol[aá]|oi|hey|bom dia|boa tarde|boa noite|status)/i.test(heard)
-      const cfg = loadAIConfig()
-      if (isGreeting && unlockedRef.current && cfg?.ttsProvider !== 'xtts') {
-        await playActivationSound(0.55).catch(() => {})
-      }
-
+      void loadAIConfig() // keep import alive
       speak.current(result.response)
       await result.action?.()
     } catch (e) {

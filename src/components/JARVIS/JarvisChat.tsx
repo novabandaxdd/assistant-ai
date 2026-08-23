@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useBrainStore } from '../../store/brainStore'
-import { isAIConfigured } from '../../utils/aiService'
+import { isAIConfigured, loadAIConfig } from '../../utils/aiService'
+import { vaultGet } from '../../utils/secureVault'
 import { unlockXttsAudio } from '../../utils/xttsService'
 import styles from './JarvisChat.module.css'
 import type { JarvisMessage } from '../../types'
@@ -20,7 +21,6 @@ function formatDate(ts: number): string {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 }
 
-/** Group messages by date so we can render date separators */
 function groupByDate(msgs: JarvisMessage[]) {
   const groups: { date: string; msgs: JarvisMessage[] }[] = []
   let lastDate = ''
@@ -35,7 +35,7 @@ function groupByDate(msgs: JarvisMessage[]) {
   return groups
 }
 
-// ── Markdown-like renderer ──────────────────────────────────────────────────
+// ── Markdown renderer ────────────────────────────────────────────────────────
 
 function renderInline(text: string): React.ReactNode[] {
   const parts: React.ReactNode[] = []
@@ -43,28 +43,17 @@ function renderInline(text: string): React.ReactNode[] {
   const combined = /(\*\*(.+?)\*\*)|(`([^`]+)`)|(https?:\/\/[^\s<>"')]+)/g
   let lastIndex = 0
   let match: RegExpExecArray | null
-
   combined.lastIndex = 0
   while ((match = combined.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index))
-    }
-    if (match[1]) {
-      parts.push(<strong key={key++}>{match[2]}</strong>)
-    } else if (match[3]) {
-      parts.push(<code key={key++} className={styles.inlineCode}>{match[4]}</code>)
-    } else if (match[5]) {
-      parts.push(
-        <a key={key++} href={match[5]} target="_blank" rel="noopener noreferrer" className={styles.msgLink}>
-          {match[5]}
-        </a>
-      )
-    }
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index))
+    if (match[1])      parts.push(<strong key={key++}>{match[2]}</strong>)
+    else if (match[3]) parts.push(<code key={key++} className={styles.inlineCode}>{match[4]}</code>)
+    else if (match[5]) parts.push(
+      <a key={key++} href={match[5]} target="_blank" rel="noopener noreferrer" className={styles.msgLink}>{match[5]}</a>
+    )
     lastIndex = combined.lastIndex
   }
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex))
-  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex))
   return parts
 }
 
@@ -72,14 +61,12 @@ function renderMessage(text: string): React.ReactNode {
   const lines = text.split('\n')
   const nodes: React.ReactNode[] = []
   let key = 0
-
   for (const line of lines) {
     if (/^- (.+)/.test(line)) {
-      const content = line.replace(/^- /, '')
       nodes.push(
         <div key={key++} className={styles.bulletItem}>
           <span className={styles.bulletDot}>•</span>
-          <span>{renderInline(content)}</span>
+          <span>{renderInline(line.replace(/^- /, ''))}</span>
         </div>
       )
     } else if (/^\d+\. (.+)/.test(line)) {
@@ -96,50 +83,89 @@ function renderMessage(text: string): React.ReactNode {
       nodes.push(<div key={key++}>{renderInline(line)}</div>)
     }
   }
-
   return <>{nodes}</>
 }
 
-// ── Thinking text cycling ────────────────────────────────────────────────────
+// ── Image generation ─────────────────────────────────────────────────────────
 
-const THINKING_TEXTS = ['Consultando grafo…', 'Processando…', 'Formulando resposta…']
+async function generateImageWithGemini(prompt: string): Promise<string | null> {
+  const cfg = loadAIConfig()
+  if (!cfg || cfg.provider !== 'gemini') return null
+
+  const apiKey = await vaultGet('gemini')
+  if (!apiKey) return null
+
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instances: [{ prompt }],
+        parameters: { sampleCount: 1 },
+      }),
+    }
+  )
+  if (!res.ok) return null
+  const data = await res.json() as { predictions?: Array<{ bytesBase64Encoded?: string }> }
+  const b64 = data.predictions?.[0]?.bytesBase64Encoded
+  return b64 ? `data:image/png;base64,${b64}` : null
+}
+
+// ── Thinking text cycling ─────────────────────────────────────────────────────
+
+const THINKING_TEXTS = [
+  'Consultando grafo…',
+  'Processando contexto…',
+  'Formulando resposta…',
+  'Analisando conexões…',
+]
 
 function ThinkingBubble() {
   const [idx, setIdx] = useState(0)
-
   useEffect(() => {
-    const id = setInterval(() => setIdx(i => (i + 1) % THINKING_TEXTS.length), 1500)
+    const id = setInterval(() => setIdx(i => (i + 1) % THINKING_TEXTS.length), 1600)
     return () => clearInterval(id)
   }, [])
-
   return (
     <div className={`${styles.bubble} ${styles.thinking}`}>
       <div className={styles.thinkingDots}>
         <span /><span /><span />
       </div>
-      <div className={styles.thinkingText}>{THINKING_TEXTS[idx]}</div>
+      <span className={styles.thinkingText}>{THINKING_TEXTS[idx]}</span>
     </div>
   )
 }
 
-// ── Quick chips ──────────────────────────────────────────────────────────────
+// ── Quick chips ───────────────────────────────────────────────────────────────
 
 const QUICK_CHIPS = [
-  'Status do projeto',
-  'Resumir grafo',
-  'Criar atividade',
-  'Analisar saúde',
-  'Mostrar hubs',
-  'Quais decisões foram tomadas?',
+  { icon: '📊', label: 'Status do projeto' },
+  { icon: '🧠', label: 'Resumir grafo' },
+  { icon: '✅', label: 'Criar atividade' },
+  { icon: '🔍', label: 'Analisar saúde' },
+  { icon: '🌐', label: 'Mostrar hubs' },
+  { icon: '🎨', label: 'Gerar imagem' },
 ]
 
-// ── Message bubble with actions ──────────────────────────────────────────────
+// ── Image bubble ──────────────────────────────────────────────────────────────
+
+function ImageBubble({ src, prompt }: { src: string; prompt: string }) {
+  return (
+    <div className={styles.imageBubble}>
+      <img src={src} alt={prompt} className={styles.generatedImage} />
+      <div className={styles.imageCaption}>{prompt}</div>
+    </div>
+  )
+}
+
+// ── Message bubble ─────────────────────────────────────────────────────────────
 
 function JarvisBubble({
   msg,
   prevUserText,
 }: {
-  msg: JarvisMessage
+  msg: JarvisMessage & { imageUrl?: string }
   prevUserText?: string
 }) {
   const [copied, setCopied] = useState(false)
@@ -160,32 +186,28 @@ function JarvisBubble({
   return (
     <div className={styles.bubbleWrap}>
       <div className={`${styles.bubble} ${styles.jarvisBubble}`}>
-        <div className={styles.msgContent}>{renderMessage(msg.text)}</div>
+        {msg.imageUrl && <ImageBubble src={msg.imageUrl} prompt={msg.text} />}
+        {!msg.imageUrl && <div className={styles.msgContent}>{renderMessage(msg.text)}</div>}
         <div className={styles.msgActions}>
           <button
-            className={`${styles.copyBtn} ${copied ? styles.copyBtnActive : ''}`}
+            className={`${styles.actionBtn} ${copied ? styles.actionBtnActive : ''}`}
             onClick={handleCopy}
-            title={copied ? 'Copiado!' : 'Copiar mensagem'}
+            title={copied ? 'Copiado!' : 'Copiar'}
           >
             {copied ? (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="12" height="12">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="11" height="11">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             ) : (
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="11" height="11">
+                <rect x="9" y="9" width="13" height="13" rx="2" />
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
               </svg>
             )}
-            {copied && <span className={styles.copyTooltip}>Copiado!</span>}
           </button>
           {prevUserText && (
-            <button
-              className={styles.copyBtn}
-              onClick={handleRetry}
-              title="Executar novamente"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="12" height="12">
+            <button className={styles.actionBtn} onClick={handleRetry} title="Reenviar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="11" height="11">
                 <polyline points="1 4 1 10 7 10" />
                 <path d="M3.51 15a9 9 0 1 0 .49-3.9" />
               </svg>
@@ -198,7 +220,7 @@ function JarvisBubble({
   )
 }
 
-// ── Main component ───────────────────────────────────────────────────────────
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export default function JarvisChat() {
   const chatOpen        = useBrainStore(s => s.chatOpen)
@@ -210,12 +232,13 @@ export default function JarvisChat() {
   const loadSession     = useBrainStore(s => s.loadSession)
   const removeSession   = useBrainStore(s => s.removeSession)
   const voiceState      = useBrainStore(s => s.voiceState)
+  const addMessage      = useBrainStore(s => s.addMessage)
 
   const [input, setInput]               = useState('')
   const [loading, setLoading]           = useState(false)
   const [aiConfigured, setAiConfigured] = useState(isAIConfigured())
   const [showSessions, setShowSessions] = useState(false)
-  const [inputFocused, setInputFocused] = useState(false)
+  const [generatingImage, setGeneratingImage] = useState(false)
   const bottomRef   = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -238,17 +261,44 @@ export default function JarvisChat() {
     const el = textareaRef.current
     if (!el) return
     el.style.height = 'auto'
-    el.style.height = `${Math.min(el.scrollHeight, 100)}px`
+    el.style.height = `${Math.min(el.scrollHeight, 120)}px`
   }, [input])
+
+  // ── Image generation flow ───────────────────────────────────────────────────
+  const handleImageGenerate = useCallback(async (prompt: string) => {
+    if (!prompt.trim()) return
+    setGeneratingImage(true)
+    // Add user message
+    addMessage({ role: 'user', text: prompt })
+    try {
+      const imgUrl = await generateImageWithGemini(prompt)
+      if (imgUrl) {
+        // Store as JARVIS message with image URL embedded in text (JSON format)
+        addMessage({ role: 'jarvis', text: `__IMAGE__${imgUrl}__PROMPT__${prompt}` })
+      } else {
+        addMessage({ role: 'jarvis', text: `Senhor, a geração de imagens requer Gemini configurado com acesso ao Imagen. Certifique-se de usar o provider Gemini nas configurações.` })
+      }
+    } catch {
+      addMessage({ role: 'jarvis', text: 'Erro ao gerar imagem. Verifique a chave da API Gemini.' })
+    } finally {
+      setGeneratingImage(false)
+    }
+  }, [addMessage])
 
   const sendText = (text?: string) => {
     const t = (text ?? input).trim()
-    if (!t || loading) return
+    if (!t || loading || generatingImage) return
     unlockXttsAudio()
     setInput('')
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
+
+    // Detect image generation intent
+    const isImageRequest = /^(ger[ae]|cri[ae]|fa[çz]a?|draw|paint|image|imagem|foto|ilustr|desenh)/i.test(t)
+    if (isImageRequest && aiConfigured) {
+      void handleImageGenerate(t)
+      return
     }
+
     window.dispatchEvent(new CustomEvent('jarvis:input', { detail: t }))
   }
 
@@ -257,58 +307,65 @@ export default function JarvisChat() {
   }
 
   const handleChip = (chip: string) => {
+    if (chip === 'Gerar imagem') {
+      setInput('Gere uma imagem de ')
+      setTimeout(() => textareaRef.current?.focus(), 50)
+      return
+    }
     unlockXttsAudio()
     window.dispatchEvent(new CustomEvent('jarvis:input', { detail: chip }))
   }
 
-  const showChips = chatHistory.length === 0 || inputFocused
-
   if (!chatOpen) return null
 
   const groups = groupByDate(chatHistory)
+  const isProcessing = loading || generatingImage
 
   return (
     <div className={styles.panel}>
-      {/* ── Header ──────────────────────────────────────────────────────── */}
+
+      {/* ── Header */}
       <div className={styles.header}>
         <div className={styles.title}>
-          <span className={styles.dot} />
-          <span>J.A.R.V.I.S.</span>
-        </div>
-        <div className={styles.headerRight}>
+          <span className={styles.statusDot} data-state={voiceState} />
+          <span className={styles.titleText}>J.A.R.V.I.S.</span>
           <div className={`${styles.aiBadge} ${aiConfigured ? styles.aiOn : styles.aiOff}`}>
             {aiConfigured ? '⚡ AI' : '⚙ Local'}
           </div>
-          {/* Sessions toggle */}
+        </div>
+        <div className={styles.headerActions}>
           <button
             className={`${styles.iconBtn} ${showSessions ? styles.iconBtnActive : ''}`}
             onClick={() => setShowSessions(s => !s)}
             title="Histórico de conversas"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
             </svg>
           </button>
-          {/* New session */}
           <button
             className={styles.iconBtn}
             onClick={() => { newSession(); setShowSessions(false) }}
             title="Nova conversa"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
           </button>
-          <button className={styles.close} onClick={() => setChatOpen(false)} title="Fechar">✕</button>
+          <button className={styles.closeBtn} onClick={() => setChatOpen(false)} title="Fechar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" width="12" height="12">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
       </div>
 
-      {/* ── Sessions drawer ───────────────────────────────────────────────── */}
+      {/* ── Sessions drawer */}
       {showSessions && (
         <div className={styles.sessions}>
           <div className={styles.sessionsHeader}>Conversas salvas</div>
           {sessions.length === 0 && (
-            <div className={styles.sessionsEmpty}>Nenhuma conversa ainda.</div>
+            <div className={styles.sessionsEmpty}>Nenhuma conversa salva.</div>
           )}
           {sessions.map(s => (
             <div
@@ -330,91 +387,123 @@ export default function JarvisChat() {
         </div>
       )}
 
-      {/* ── Messages ─────────────────────────────────────────────────────── */}
+      {/* ── Messages */}
       <div className={styles.messages}>
         {chatHistory.length === 0 ? (
           <div className={styles.empty}>
-            <div className={styles.emptyIcon}>J</div>
-            <span>Diga algo ou escreva um comando, Senhor.</span>
+            <div className={styles.emptyRing}>
+              <span className={styles.emptyLogo}>J</span>
+            </div>
+            <p className={styles.emptyText}>Olá, Senhor. Como posso ajudar?</p>
+            <p className={styles.emptyHint}>Pergunte sobre seus projetos, crie atividades ou gere imagens.</p>
           </div>
         ) : (
           groups.map(group => (
             <div key={group.date}>
-              <div className={styles.dateSep}>{group.date}</div>
+              <div className={styles.dateSep}><span>{group.date}</span></div>
               {group.msgs.map((msg: JarvisMessage) => {
-                // Find the previous user message to enable "retry"
                 const globalIdx = chatHistory.indexOf(msg)
                 const prevUser = globalIdx > 0
                   ? chatHistory.slice(0, globalIdx).reverse().find(m => m.role === 'user')
                   : undefined
+
+                // Parse image messages
+                const isImageMsg = msg.role === 'jarvis' && msg.text.startsWith('__IMAGE__')
+                let imageUrl: string | undefined
+                let displayText = msg.text
+                if (isImageMsg) {
+                  const imgMatch = msg.text.match(/^__IMAGE__(.+?)__PROMPT__(.+)$/)
+                  if (imgMatch) { imageUrl = imgMatch[1]; displayText = imgMatch[2] }
+                }
 
                 return (
                   <div
                     key={msg.id}
                     className={`${styles.msg} ${msg.role === 'jarvis' ? styles.jarvisMsg : styles.userMsg}`}
                   >
-                    {msg.role === 'jarvis' && <span className={styles.avatar}>J</span>}
+                    {msg.role === 'jarvis' && (
+                      <div className={styles.avatar}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="12" height="12">
+                          <circle cx="12" cy="12" r="10"/>
+                          <path d="M12 8v4l3 3"/>
+                        </svg>
+                      </div>
+                    )}
                     {msg.role === 'jarvis' ? (
-                      <JarvisBubble msg={msg} prevUserText={prevUser?.text} />
+                      <JarvisBubble
+                        msg={{ ...msg, text: displayText, imageUrl }}
+                        prevUserText={prevUser?.text}
+                      />
                     ) : (
                       <div className={styles.bubbleWrap}>
                         <div className={`${styles.bubble} ${styles.userBubble}`}>{msg.text}</div>
                         <div className={styles.msgTime}>{formatTime(msg.timestamp)}</div>
                       </div>
                     )}
-                    {msg.role === 'user' && <span className={styles.userAvatar}>Eu</span>}
+                    {msg.role === 'user' && (
+                      <div className={styles.userAvatar}>Eu</div>
+                    )}
                   </div>
                 )
               })}
             </div>
           ))
         )}
-        {loading && (
+        {(isProcessing) && (
           <div className={`${styles.msg} ${styles.jarvisMsg}`}>
-            <span className={styles.avatar}>J</span>
+            <div className={styles.avatar}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" width="12" height="12">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 8v4l3 3"/>
+              </svg>
+            </div>
             <ThinkingBubble />
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
-      {/* ── Quick chips ───────────────────────────────────────────────────── */}
-      {showChips && !loading && (
+      {/* ── Quick chips */}
+      {chatHistory.length === 0 && !isProcessing && (
         <div className={styles.quickChips}>
           {QUICK_CHIPS.map(chip => (
             <button
-              key={chip}
+              key={chip.label}
               className={styles.quickChip}
-              onClick={() => handleChip(chip)}
+              onClick={() => handleChip(chip.label)}
             >
-              {chip}
+              <span className={styles.chipIcon}>{chip.icon}</span>
+              {chip.label}
             </button>
           ))}
         </div>
       )}
 
-      {/* ── Input ────────────────────────────────────────────────────────── */}
-      <div className={styles.inputRow}>
+      {/* ── Input */}
+      <div className={`${styles.inputRow} ${isProcessing ? styles.inputRowLoading : ''}`}>
         <textarea
           ref={textareaRef}
           className={styles.input}
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKey}
-          onFocus={() => setInputFocused(true)}
-          onBlur={() => setTimeout(() => setInputFocused(false), 150)}
-          placeholder={aiConfigured ? 'Pergunte ao JARVIS... (Enter para enviar)' : 'Digite um comando...'}
-          disabled={loading}
+          placeholder={aiConfigured ? 'Pergunte ao JARVIS… (Enter para enviar)' : 'Digite um comando…'}
+          disabled={isProcessing}
           rows={1}
-          autoFocus
         />
-        <button className={styles.send} onClick={() => sendText()} disabled={loading || !input.trim()} title="Enviar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="22" y1="2" x2="11" y2="13" />
-            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+        <button
+          className={`${styles.sendBtn} ${input.trim() ? styles.sendBtnActive : ''}`}
+          onClick={() => sendText()}
+          disabled={isProcessing || !input.trim()}
+          title="Enviar"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
           </svg>
         </button>
       </div>
+
     </div>
   )
 }

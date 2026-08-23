@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useMemo, useState } from 'react'
 import ForceGraph2D from 'react-force-graph-2d'
 import { useBrainStore, CATEGORY_COLORS } from '../../store/brainStore'
 import type { BrainNode, BrainLink, NodeCategory } from '../../types'
+import GraphContextMenu from './GraphContextMenu'
 
 interface NodeObject extends BrainNode {
   val: number
@@ -145,6 +146,16 @@ function drawShape(
   }
 }
 
+// ── Context menu state
+interface ContextMenuState {
+  x: number
+  y: number
+  graphX: number
+  graphY: number
+  nodeId?: string
+  nodeLabel?: string
+}
+
 export default function ForceGraph() {
   const fgRef      = useRef<ReturnType<typeof ForceGraph2D> | null>(null)
   const tooltipRef = useRef<TooltipState | null>(null)
@@ -153,6 +164,7 @@ export default function ForceGraph() {
 
   // Layout mode: 'force' | 'radial'
   const [layout, setLayout] = useState<'force' | 'radial'>('force')
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
 
   // ── Store slices
   const nodes       = useBrainStore(s => s.filteredNodes())
@@ -166,6 +178,8 @@ export default function ForceGraph() {
   const addMessage  = useBrainStore(s => s.addMessage)
   const setChatOpen = useBrainStore(s => s.setChatOpen)
   const getLinks    = useBrainStore(s => s.getLinks)
+  const addNode     = useBrainStore(s => s.addNode)
+  const addLink     = useBrainStore(s => s.addLink)
 
   // ── Track Shift key via ref
   useEffect(() => {
@@ -452,8 +466,37 @@ export default function ForceGraph() {
     return () => window.removeEventListener('resize', handle)
   }, [])
 
+  // ── Context menu handler
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    // Get graph coords from pixel position
+    const fg = fgRef.current as unknown as {
+      screen2GraphCoords?: (x: number, y: number) => { x: number; y: number }
+    }
+    const graphCoords = fg?.screen2GraphCoords?.(e.clientX, e.clientY) ?? { x: 0, y: 0 }
+
+    // Check if right-click landed near a node
+    const nodeAtPoint = graphData.nodes.find(n => {
+      const dx = (n.x ?? 0) - graphCoords.x
+      const dy = (n.y ?? 0) - graphCoords.y
+      return Math.sqrt(dx * dx + dy * dy) < 16
+    })
+
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      graphX: graphCoords.x,
+      graphY: graphCoords.y,
+      nodeId: nodeAtPoint?.id,
+      nodeLabel: nodeAtPoint?.label,
+    })
+  }, [graphData.nodes])
+
   return (
-    <div style={{ position: 'absolute', inset: 0, background: '#0d0f14' }}>
+    <div
+      style={{ position: 'absolute', inset: 0, background: '#0d0f14' }}
+      onContextMenu={handleContextMenu}
+    >
       <ForceGraph2D
         ref={fgRef as never}
         graphData={graphData}
@@ -486,6 +529,7 @@ export default function ForceGraph() {
         d3VelocityDecay={0.4}
         minZoom={0.1}
         maxZoom={8}
+        onBackgroundRightClick={() => { /* handled by div onContextMenu */ }}
       />
 
       {/* Layout toggle — clear of right sidebar (160px) and toolbar */}
@@ -541,6 +585,32 @@ export default function ForceGraph() {
         <div className="tt-cat"  style={{ color: 'rgba(255,255,255,0.4)', fontSize: 10, marginBottom: 1, fontFamily: 'monospace' }} />
         <div className="tt-meta" style={{ color: 'rgba(255,255,255,0.45)', fontSize: 11 }} />
       </div>
+      {/* Context menu */}
+      {contextMenu && (
+        <GraphContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          nodeId={contextMenu.nodeId}
+          nodeLabel={contextMenu.nodeLabel}
+          onClose={() => setContextMenu(null)}
+          onCreateNode={async (label, category) => {
+            const node = await addNode({ label, category })
+            setContextMenu(null)
+            selectNode(node.id)
+          }}
+          onLinkTo={async (targetId) => {
+            if (contextMenu.nodeId) {
+              await addLink(contextMenu.nodeId, targetId)
+            }
+            setContextMenu(null)
+          }}
+          onSelect={() => {
+            if (contextMenu.nodeId) selectNode(contextMenu.nodeId)
+            setContextMenu(null)
+          }}
+          allNodes={useBrainStore.getState().nodes}
+        />
+      )}
     </div>
   )
 }

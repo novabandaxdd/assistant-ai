@@ -160,7 +160,7 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
   const voiceState  = useBrainStore(s => s.voiceState)
   const chatOpen    = useBrainStore(s => s.chatOpen)
   const setChatOpen = useBrainStore(s => s.setChatOpen)
-  const { isListening, isSpeaking, startListening, stopListening } = useSpeech()
+  const { isListening, startListening, stopListening } = useSpeech()
 
   const syncStatus = useSyncStore(s => s.status)
   const [syncOpen, setSyncOpen] = useState(false)
@@ -240,14 +240,15 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
   const handleHUDClick = () => {
     if (isDragging.current) return
     if (isListening) { stopListening(); return }
-    if (isSpeaking)  { window.speechSynthesis?.cancel(); return }
-    startListening()
+    // Primary action: toggle chat panel
+    setChatOpen(!chatOpen)
+    // Also try mic if supported (non-blocking)
+    if (!chatOpen) startListening()
   }
 
   const theme     = STATE_THEME[voiceState]
   const isActive  = voiceState !== 'idle'
   const isThinkin = voiceState === 'thinking'
-  const isSpeakng = voiceState === 'speaking'
   const modelLabel = getModelLabel()
 
   // Scale factor: 240 is the "native" SVG size
@@ -320,9 +321,8 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
             strokeDasharray="5 7" className={styles.ring3} />
 
           <circle cx="120" cy="120" r="52"
-            fill={isSpeakng ? 'rgba(0,60,50,0.6)' : isThinkin ? 'rgba(40,30,0,0.4)' : 'rgba(0,30,30,0.3)'}
+            fill={isThinkin ? 'rgba(40,30,0,0.4)' : 'rgba(0,30,30,0.3)'}
             stroke={theme.ring} strokeWidth="1.5" strokeOpacity={isActive ? 0.7 : 0.3}
-            className={isSpeakng ? styles.spherePulse : ''}
           />
 
           {isActive && (
@@ -332,12 +332,6 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
             />
           )}
 
-          {isSpeakng && Array.from({ length: 8 }, (_, i) => {
-            const angle = (-90 + i * 22) * (Math.PI / 180)
-            const r = 52, cx = 120 + r * Math.cos(angle), cy = 120 + r * Math.sin(angle)
-            return <circle key={i} cx={cx} cy={cy} r="2" fill={theme.ring} opacity="0.7"
-              className={styles.waveDot} style={{ animationDelay: `${i * 0.07}s` }} />
-          })}
         </svg>
 
         {/* Center label */}
@@ -422,9 +416,6 @@ export default function JarvisHUD({ onFit }: JarvisHUDProps) {
         title="Redimensionar"
       />
 
-      {!('speechSynthesis' in window) && (
-        <div className={styles.unsupported}>Voz não suportada neste navegador</div>
-      )}
 
       <SyncPanel open={syncOpen} onClose={() => setSyncOpen(false)} />
     </div>
